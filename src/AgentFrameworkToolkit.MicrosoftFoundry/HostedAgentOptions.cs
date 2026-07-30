@@ -1,13 +1,15 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.AI;
 
+#pragma warning disable OPENAI001
+
 namespace AgentFrameworkToolkit.MicrosoftFoundry;
 
 /// <summary>
-/// Options for a Declarative Agent
+/// Options for a Hosted Agent
 /// </summary>
 [PublicAPI]
-public class DeclarativeAgentOptions
+public class HostedAgentOptions
 {
     /// <summary>
     /// The Unique Name of the Agent
@@ -38,5 +40,4 @@ public class DeclarativeAgentOptions
     /// An optional <see cref="IServiceProvider"/> to use for resolving services required by the <see cref="AIFunction"/> instances being invoked.
     /// </summary>
     public IServiceProvider? Services { get; set; }
-
 }

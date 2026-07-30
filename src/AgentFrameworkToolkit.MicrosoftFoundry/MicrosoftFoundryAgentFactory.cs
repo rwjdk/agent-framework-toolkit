@@ -27,6 +27,12 @@ public class MicrosoftFoundryAgentFactory
     public MicrosoftFoundryDeclarativeAgentFactory DeclarativeAgentFactory { get; }
 
     /// <summary>
+    /// Methods for working with Declarative Agents (aka Agents that 'live' as definitions in ai.azure.com)
+    /// </summary>
+    public MicrosoftFoundryHostedAgentFactory HostedAgentFactory { get; }
+
+
+    /// <summary>
     /// Constructor
     /// </summary>
     /// <param name="connection">Connection Details</param>
@@ -34,6 +40,7 @@ public class MicrosoftFoundryAgentFactory
     {
         Connection = connection;
         DeclarativeAgentFactory = new MicrosoftFoundryDeclarativeAgentFactory(connection);
+        HostedAgentFactory = new MicrosoftFoundryHostedAgentFactory(connection);
     }
 
     /// <summary>
@@ -45,6 +52,7 @@ public class MicrosoftFoundryAgentFactory
     {
         Connection = new MicrosoftFoundryConnection(endpoint, authenticationTokenProvider);
         DeclarativeAgentFactory = new MicrosoftFoundryDeclarativeAgentFactory(Connection);
+        HostedAgentFactory = new MicrosoftFoundryHostedAgentFactory(Connection);
     }
 
     /// <summary>

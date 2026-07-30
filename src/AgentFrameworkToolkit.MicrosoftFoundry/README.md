@@ -63,7 +63,7 @@ bool agentCreated = false;
 
 try
 {
-    MicrosoftFoundryAgent agent = agentFactory.CreateAgent(new DeclarativeAgentOptions
+    MicrosoftFoundryAgent agent = agentFactory.CreateAgent(new MicrosoftFoundryDeclarativeAgentOptions
     {
         Name = agentName,
         Model = "gpt-5-nano",
@@ -101,7 +101,7 @@ The factory provides three creation levels:
 | Overload | Use case |
 | --- | --- |
 | `CreateAgent(string agentName, string model, ...)` | Create a simple declarative agent with instructions and local tools. |
-| `CreateAgent(DeclarativeAgentOptions options)` | Configure local tools, MCP tools, web search, code interpreter, reasoning, and middleware. |
+| `CreateAgent(MicrosoftFoundryDeclarativeAgentOptions options)` | Configure local tools, MCP tools, web search, code interpreter, reasoning, and middleware. |
 | `CreateAgent(string agentName, DeclarativeAgentDefinition definition)` | Supply the raw Microsoft Foundry definition for advanced scenarios. |
 
 The returned `MicrosoftFoundryAgent` is a regular Microsoft Agent Framework `AIAgent` and can be run with `RunAsync` or used anywhere an `AIAgent` is accepted.

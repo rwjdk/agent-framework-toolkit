@@ -135,7 +135,7 @@ public sealed class MicrosoftFoundryTests : TestsBase
 
         try
         {
-            createdAgent = factory.CreateAgent(new DeclarativeAgentOptions
+            createdAgent = factory.CreateAgent(new DeclarativeAgentCreationOptions
             {
                 Name = agentName,
                 Model = OpenAIChatModels.Gpt5Nano,
@@ -200,7 +200,7 @@ public sealed class MicrosoftFoundryTests : TestsBase
 
         try
         {
-            createdAgent = factory.CreateAgent(new DeclarativeAgentOptions
+            createdAgent = factory.CreateAgent(new DeclarativeAgentCreationOptions
             {
                 Name = agentName,
                 Model = OpenAIChatModels.Gpt5Nano,

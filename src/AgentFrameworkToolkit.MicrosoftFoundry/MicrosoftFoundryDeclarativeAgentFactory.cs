@@ -1,21 +1,46 @@
+using Azure.AI.Extensions.OpenAI;
 using Azure.AI.Projects;
 using Azure.AI.Projects.Agents;
+using JetBrains.Annotations;
+using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Foundry;
 using Microsoft.Extensions.AI;
-using System.ClientModel;
-using JetBrains.Annotations;
 using OpenAI.Responses;
+using System.ClientModel;
 #pragma warning disable OPENAI001
 
 namespace AgentFrameworkToolkit.MicrosoftFoundry;
 
 /// <summary>
-/// Factory for working with Declarative Agents (aka Agents that 'live' as definitions in AI.Azure.com)
+/// Factory for working with Hosted Agents
 /// </summary>
-/// <param name="connection">Connection to Microsoft Foundry</param>
 [PublicAPI]
-public class MicrosoftFoundryDeclarativeAgentFactory(MicrosoftFoundryConnection connection)
+public class MicrosoftFoundryDeclarativeAgentFactory
 {
+    /// <summary>
+    /// Connection
+    /// </summary>
+    public MicrosoftFoundryConnection Connection { get; }
+
+    /// <summary>
+    /// Constructor
+    /// </summary>
+    /// <param name="connection">Connection Details</param>
+    public MicrosoftFoundryDeclarativeAgentFactory(MicrosoftFoundryConnection connection)
+    {
+        Connection = connection;
+    }
+
+    /// <summary>
+    /// Constructor
+    /// </summary>
+    /// <param name="endpoint">Endpoint of Microsoft Foundry Project</param>
+    /// <param name="authenticationTokenProvider">Optional TokenProvider used for credentials; if not provided DefaultAzureCredential will be used</param>
+    public MicrosoftFoundryDeclarativeAgentFactory(string endpoint, AuthenticationTokenProvider? authenticationTokenProvider = null)
+    {
+        Connection = new MicrosoftFoundryConnection(endpoint, authenticationTokenProvider);
+    }
+    
     /// <summary>
     /// Create an Agent (or update to a new version if agentName exist and there are changes in definition)
     /// </summary>
@@ -42,7 +67,7 @@ public class MicrosoftFoundryDeclarativeAgentFactory(MicrosoftFoundryConnection 
     /// </summary>
     /// <param name="options">Options for the Agent</param>
     /// <returns>The Agent</returns>
-    public MicrosoftFoundryAgent CreateAgent(DeclarativeAgentOptions options)
+    public MicrosoftFoundryAgent CreateAgent(DeclarativeAgentCreationOptions options)
     {
         DeclarativeAgentDefinition definition = new(options.Model)
         {
@@ -77,7 +102,7 @@ public class MicrosoftFoundryDeclarativeAgentFactory(MicrosoftFoundryConnection 
             };
         }
 
-        AIProjectClient client = connection.GetClient();
+        AIProjectClient client = Connection.GetClient();
         ProjectsAgentVersionCreationOptions creationOptions = new(definition);
         ClientResult<ProjectsAgentVersion> result = client.AgentAdministrationClient.CreateAgentVersion(options.Name, creationOptions);
         FoundryAgent agent = client.AsAIAgent(result.Value, options.Tools, services: options.Services);
@@ -96,9 +121,9 @@ public class MicrosoftFoundryDeclarativeAgentFactory(MicrosoftFoundryConnection 
     /// <param name="definition">The raw Microsoft Foundry Agent Definition for advanced scenarios</param>
     /// <param name="tools">In-process Tools used by the Agent</param>
     /// <returns>The Agent</returns>
-    public MicrosoftFoundryAgent CreateAgent(string agentName, DeclarativeAgentDefinition definition, IList<AITool>? tools = null)
+    public MicrosoftFoundryAgent CreateAgent(string agentName, ProjectsAgentDefinition definition, IList<AITool>? tools = null)
     {
-        AIProjectClient client = connection.GetClient();
+        AIProjectClient client = Connection.GetClient();
 
         ProjectsAgentVersionCreationOptions creationOptions = new(definition);
         ClientResult<ProjectsAgentVersion> result = client.AgentAdministrationClient.CreateAgentVersion(agentName, creationOptions);
@@ -114,7 +139,7 @@ public class MicrosoftFoundryDeclarativeAgentFactory(MicrosoftFoundryConnection 
     /// <returns>The Agent</returns>
     public MicrosoftFoundryAgent GetAgent(string agentName, IList<AITool>? tools = null)
     {
-        AIProjectClient client = connection.GetClient();
+        AIProjectClient client = Connection.GetClient();
         ClientResult<ProjectsAgentRecord> result = client.AgentAdministrationClient.GetAgent(agentName);
         FoundryAgent agent = client.AsAIAgent(result.Value, tools);
         return new MicrosoftFoundryAgent(agent);
@@ -129,7 +154,7 @@ public class MicrosoftFoundryDeclarativeAgentFactory(MicrosoftFoundryConnection 
     /// <returns>The Agent</returns>
     public MicrosoftFoundryAgent GetAgent(string agentName, string version, IList<AITool>? tools = null)
     {
-        AIProjectClient client = connection.GetClient();
+        AIProjectClient client = Connection.GetClient();
         ClientResult<ProjectsAgentVersion> result = client.AgentAdministrationClient.GetAgentVersion(agentName, version);
         FoundryAgent agent = client.AsAIAgent(result.Value, tools);
         return new MicrosoftFoundryAgent(agent);
@@ -144,7 +169,7 @@ public class MicrosoftFoundryDeclarativeAgentFactory(MicrosoftFoundryConnection 
     {
         const int pageSize = 100;
         List<MicrosoftFoundryAgent> agents = [];
-        AIProjectClient client = connection.GetClient();
+        AIProjectClient client = Connection.GetClient();
         string? after = null;
         List<ProjectsAgentRecord> records;
         do
@@ -174,7 +199,7 @@ public class MicrosoftFoundryDeclarativeAgentFactory(MicrosoftFoundryConnection 
     public IList<ProjectsAgentVersion> GetAgentVersions(string agentName)
     {
         const int pageSize = 100;
-        AIProjectClient client = connection.GetClient();
+        AIProjectClient client = Connection.GetClient();
         List<ProjectsAgentVersion> versions = [];
         string? after = null;
         List<ProjectsAgentVersion> page;
@@ -198,6 +223,6 @@ public class MicrosoftFoundryDeclarativeAgentFactory(MicrosoftFoundryConnection 
     /// <param name="agentName">The unique name of the Agent to delete</param>
     public void DeleteAgent(string agentName)
     {
-        connection.GetClient().AgentAdministrationClient.DeleteAgent(agentName);
+        Connection.GetClient().AgentAdministrationClient.DeleteAgent(agentName);
     }
 }
