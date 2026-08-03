@@ -1,7 +1,7 @@
 <Project>
 	<PropertyGroup>
 		<!-- Central version prefix - applies to all nuget packages. -->
-		<PackageVersion>1.16.0</PackageVersion>
+		<PackageVersion>1.16.1</PackageVersion>
 		<Configurations>Debug;Release;Publish</Configurations>
 		<Title>Microsoft Agent Framework</Title>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
