@@ -1,5 +1,10 @@
 # Changelog - Agent Framework Toolkit
 
+## Version 1.16.1 (3rd of August 2026)
+- Fixed request-specific state leaking between sequential tool-call rounds by returning fresh provider request options for OpenAI, Anthropic, and Google agents
+
+---
+
 ## Version 1.16.0 (30th of July 2026)
 - Updated Agent Framework from 1.15.0 to 1.16.0
 - Updated all NuGet packages to the latest

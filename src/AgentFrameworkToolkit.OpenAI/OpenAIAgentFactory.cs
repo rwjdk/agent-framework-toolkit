@@ -99,7 +99,7 @@ public class OpenAIAgentFactory
         };
     }
 
-    private static ChatClientAgentOptions CreateChatClientAgentOptions(AgentOptions options, ClientType defaultClientType)
+    internal static ChatClientAgentOptions CreateChatClientAgentOptions(AgentOptions options, ClientType defaultClientType)
     {
         bool anyOptionsSet = false;
         ChatOptions chatOptions = new();
@@ -158,64 +158,52 @@ public class OpenAIAgentFactory
         {
             case ClientType.ChatClient:
                 {
-                    bool anyRawOptionsSet = false;
-                    ChatCompletionOptions rawOptions = new();
-                    
-                    if (options.StoredOutputEnabled.HasValue)
-                    {
-                        anyRawOptionsSet = true;
-                        rawOptions.StoredOutputEnabled = options.StoredOutputEnabled.Value;
-                    }
+                    bool? storedOutputEnabled = options.StoredOutputEnabled;
+                    string? configuredReasoningEffort = !string.IsNullOrWhiteSpace(reasoningEffortAsString) &&
+                                                        !OpenAIChatModels.NonReasoningModels.Contains(options.Model)
+                        ? reasoningEffortAsString
+                        : null;
+                    ChatServiceTier? serviceTier = ChatClientServiceTierParser();
 
-                    if (!string.IsNullOrWhiteSpace(reasoningEffortAsString) && !OpenAIChatModels.NonReasoningModels.Contains(options.Model))
-                    {
-                        anyRawOptionsSet = true;
-                        rawOptions.ReasoningEffortLevel = new ChatReasoningEffortLevel(reasoningEffortAsString);
-                    }
-
-                    if (options.ServiceTier.HasValue)
-                    {
-                        anyRawOptionsSet = true;
-                        rawOptions.ServiceTier = ChatClientServiceTierParser();
-                    }
-
-                    if (anyRawOptionsSet)
+                    if (storedOutputEnabled.HasValue || configuredReasoningEffort != null || serviceTier != null)
                     {
                         anyOptionsSet = true;
-                        chatOptions.RawRepresentationFactory = _ => rawOptions;
+                        chatOptions.RawRepresentationFactory = _ => new ChatCompletionOptions
+                        {
+                            StoredOutputEnabled = storedOutputEnabled,
+                            ReasoningEffortLevel = configuredReasoningEffort != null
+                                ? new ChatReasoningEffortLevel(configuredReasoningEffort)
+                                : null,
+                            ServiceTier = serviceTier
+                        };
                     }
                     break;
                 }
             case ClientType.ResponsesApi:
                 {
-                    bool anyRawOptionsSet = false;
-                    CreateResponseOptions rawOptions = new();
+                    bool? storedOutputEnabled = options.StoredOutputEnabled;
+                    string? configuredReasoningEffort = !string.IsNullOrWhiteSpace(reasoningEffortAsString) &&
+                                                        !OpenAIChatModels.NonReasoningModels.Contains(options.Model)
+                        ? reasoningEffortAsString
+                        : null;
+                    ResponseReasoningSummaryVerbosity? reasoningSummaryVerbosity = ResponseReasonSummaryVerbosityParser();
+                    ResponseServiceTier? serviceTier = ResponseServiceTierParser();
 
-                    if (options.StoredOutputEnabled.HasValue)
-                    {
-                        anyRawOptionsSet = true;
-                        rawOptions.StoredOutputEnabled = options.StoredOutputEnabled.Value;
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(reasoningEffortAsString) && !OpenAIChatModels.NonReasoningModels.Contains(options.Model))
-                    {
-                        anyRawOptionsSet = true;
-                        rawOptions.ReasoningOptions = new ResponseReasoningOptions
-                        {
-                            ReasoningEffortLevel = new ResponseReasoningEffortLevel(reasoningEffortAsString),
-                            ReasoningSummaryVerbosity = ResponseReasonSummaryVerbosityParser()
-                        };
-                    }
-
-                    if (options.ServiceTier.HasValue)
-                    {
-                        anyRawOptionsSet = true;
-                        rawOptions.ServiceTier = ResponseServiceTierParser();
-                    }
-                    if (anyRawOptionsSet)
+                    if (storedOutputEnabled.HasValue || configuredReasoningEffort != null || serviceTier != null)
                     {
                         anyOptionsSet = true;
-                        chatOptions.RawRepresentationFactory = _ => rawOptions;
+                        chatOptions.RawRepresentationFactory = _ => new CreateResponseOptions
+                        {
+                            StoredOutputEnabled = storedOutputEnabled,
+                            ReasoningOptions = configuredReasoningEffort != null
+                                ? new ResponseReasoningOptions
+                                {
+                                    ReasoningEffortLevel = new ResponseReasoningEffortLevel(configuredReasoningEffort),
+                                    ReasoningSummaryVerbosity = reasoningSummaryVerbosity
+                                }
+                                : null,
+                            ServiceTier = serviceTier
+                        };
                     }
                     break;
                 }

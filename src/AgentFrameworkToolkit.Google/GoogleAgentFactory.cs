@@ -82,7 +82,7 @@ public class GoogleAgentFactory
         return new GoogleAgent(innerAgent);
     }
 
-    private static ChatClientAgentOptions CreateChatClientAgentOptions(GoogleAgentOptions options)
+    internal static ChatClientAgentOptions CreateChatClientAgentOptions(GoogleAgentOptions options)
     {
         bool anyOptionsSet = false;
         ChatOptions chatOptions = new();
@@ -98,49 +98,30 @@ public class GoogleAgentFactory
             chatOptions.MaxOutputTokens = options.MaxOutputTokens.Value;
         }
 
-        GenerateContentConfig? rawConfig = null;
-        if (options.ThinkingLevel.HasValue)
+        ThinkingLevel? thinkingLevel = options.ThinkingLevel;
+        int? thinkingBudget = options.ThinkingBudget;
+        bool includeThoughts = options.IncludeThoughts;
+        ServiceTier? serviceTier = options.ServiceTier;
+        if (thinkingLevel.HasValue || thinkingBudget.HasValue || serviceTier.HasValue)
         {
             anyOptionsSet = true;
-            if (rawConfig == null)
+            chatOptions.RawRepresentationFactory = _ => new GenerateContentConfig
             {
-                rawConfig = new GenerateContentConfig();
-            }
-
-            rawConfig.ThinkingConfig = new ThinkingConfig
-            {
-                ThinkingLevel = options.ThinkingLevel,
-                IncludeThoughts = options.IncludeThoughts
+                ThinkingConfig = thinkingLevel.HasValue
+                    ? new ThinkingConfig
+                    {
+                        ThinkingLevel = thinkingLevel,
+                        IncludeThoughts = includeThoughts
+                    }
+                    : thinkingBudget.HasValue
+                        ? new ThinkingConfig
+                        {
+                            ThinkingBudget = thinkingBudget.Value,
+                            IncludeThoughts = includeThoughts
+                        }
+                        : null,
+                ServiceTier = serviceTier
             };
-        }
-        else if (options.ThinkingBudget.HasValue)
-        {
-            anyOptionsSet = true;
-            if (rawConfig == null)
-            {
-                rawConfig = new GenerateContentConfig();
-            }
-
-            rawConfig.ThinkingConfig = new ThinkingConfig
-            {
-                ThinkingBudget = options.ThinkingBudget.Value,
-                IncludeThoughts = options.IncludeThoughts
-            };
-        }
-
-        if (options.ServiceTier.HasValue)
-        {
-            anyOptionsSet = true;
-            if (rawConfig == null)
-            {
-                rawConfig = new GenerateContentConfig();
-            }
-            rawConfig.ServiceTier = options.ServiceTier;
-        }
-
-        if (rawConfig != null)
-        {
-            chatOptions.RawRepresentationFactory = _ => rawConfig;
         }
 
         if (options.Temperature != null)

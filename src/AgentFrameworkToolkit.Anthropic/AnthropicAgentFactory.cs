@@ -81,7 +81,7 @@ public class AnthropicAgentFactory
             options.Services));
     }
 
-    private static ChatClientAgentOptions CreateChatClientAgentOptions(AnthropicAgentOptions options)
+    internal static ChatClientAgentOptions CreateChatClientAgentOptions(AnthropicAgentOptions options)
     {
         ChatOptions chatOptions = new()
         {
@@ -104,49 +104,34 @@ public class AnthropicAgentFactory
             chatOptions.Temperature = options.Temperature;
         }
         
-        ThinkingConfigParam? thinkingOptions = null;
-        if (options.UseAdaptiveThinking)
-        {
-            thinkingOptions = new ThinkingConfigParam(new ThinkingConfigAdaptive());
+        bool useAdaptiveThinking = options.UseAdaptiveThinking;
+        int maxOutputTokens = options.MaxOutputTokens;
+        string model = options.Model;
+        int? budgetTokens = options.BudgetTokens;
+        Ttl? cacheControlTimeToLive = options.CacheControlTimeToLive;
+        Effort? effort = options.Effort;
+        ServiceTier? serviceTier = options.ServiceTier;
 
-        }
-        else if (options.BudgetTokens != null)
+        if (useAdaptiveThinking || budgetTokens.HasValue || cacheControlTimeToLive.HasValue || effort.HasValue || serviceTier.HasValue)
         {
-            thinkingOptions = new ThinkingConfigParam(new ThinkingConfigEnabled() { BudgetTokens = options.BudgetTokens.Value });
-        }
-
-        OutputConfig? outputConfig = null;
-        if (options.Effort.HasValue)
-        {
-            outputConfig = new OutputConfig
+            chatOptions.RawRepresentationFactory = _ => new MessageCreateParams
             {
-                Effort = options.Effort.Value
-            };
-        }
-        
-        CacheControlEphemeral? cacheControl = null;
-        if (options.CacheControlTimeToLive.HasValue)
-        {
-            cacheControl = new CacheControlEphemeral
-            {
-                Ttl = options.CacheControlTimeToLive,
-            };
-        }
-
-        if (thinkingOptions != null || cacheControl != null || outputConfig != null || options.ServiceTier.HasValue)
-        {
-            MessageCreateParams rawOptions = new()
-            {
-                MaxTokens = options.MaxOutputTokens,
+                MaxTokens = maxOutputTokens,
                 Messages = [],
-                Model = options.Model,
-                Thinking = thinkingOptions,
-                CacheControl = cacheControl,
-                OutputConfig = outputConfig,
-                ServiceTier = options.ServiceTier
-                
+                Model = model,
+                Thinking = useAdaptiveThinking
+                    ? new ThinkingConfigParam(new ThinkingConfigAdaptive())
+                    : budgetTokens.HasValue
+                        ? new ThinkingConfigParam(new ThinkingConfigEnabled { BudgetTokens = budgetTokens.Value })
+                        : null,
+                CacheControl = cacheControlTimeToLive.HasValue
+                    ? new CacheControlEphemeral { Ttl = cacheControlTimeToLive }
+                    : null,
+                OutputConfig = effort.HasValue
+                    ? new OutputConfig { Effort = effort.Value }
+                    : null,
+                ServiceTier = serviceTier
             };
-            chatOptions.RawRepresentationFactory = _ => rawOptions;
         }
 
         ChatClientAgentOptions chatClientAgentOptions = new()
