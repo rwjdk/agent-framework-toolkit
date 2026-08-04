@@ -53,25 +53,6 @@ public class MicrosoftFoundryHostedAgentFactory
     }
     
     /// <summary>
-    /// Get Agent previously deployed
-    /// </summary>
-    /// <param name="options">Options for the agent</param>
-    /// <returns>The Agent</returns>
-    public MicrosoftFoundryAgent GetAgent(HostedAgentOptions options)
-    {
-        AIProjectClient projectClient = Connection.GetClient();
-        ProjectResponsesClient client = projectClient.ProjectOpenAIClient.GetProjectResponsesClientForAgentEndpoint(options.Name);
-        ChatClientAgent agent = client.AsAIAgent();
-
-        return new MicrosoftFoundryAgent(MiddlewareHelper.ApplyMiddleware(agent,
-            options.RawToolCallDetails,
-            options.ToolCallingMiddleware,
-            options.OpenTelemetryMiddleware,
-            options.LoggingMiddleware,
-            options.Services));
-    }
-
-    /// <summary>
     /// Create a Hosted Agent from local source code (or update to a new version if agentName exists)
     /// </summary>
     /// <param name="options">Options for the agent</param>
@@ -127,12 +108,7 @@ public class MicrosoftFoundryHostedAgentFactory
 
         ProjectResponsesClient client = projectClient.ProjectOpenAIClient.GetProjectResponsesClientForAgentEndpoint(options.Name);
         ChatClientAgent agent = client.AsAIAgent();
-        return new MicrosoftFoundryAgent(MiddlewareHelper.ApplyMiddleware(agent,
-            options.RawToolCallDetails,
-            options.ToolCallingMiddleware,
-            options.OpenTelemetryMiddleware,
-            options.LoggingMiddleware,
-            options.Services));
+        return new MicrosoftFoundryAgent(agent);
     }
 
     private static void CopySourceDirectory(string sourceDirectory, string destinationDirectory)

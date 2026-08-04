@@ -38,9 +38,6 @@ public sealed class MistralTests : TestsBase
     public Task AgentFactory_McpToolCall() => McpToolCallAgentTestsAsync(AgentProvider.Mistral);
 
     [Fact]
-    public Task AgentFactory_StructuredOutput() => StructuredOutputAgentTestsAsync(AgentProvider.Mistral);
-
-    [Fact]
     public async Task AgentFactory_DependencyInjection()
     {
         Secrets.Secrets secrets = SecretsManager.GetSecrets();

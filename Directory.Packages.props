@@ -5,24 +5,24 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Microsoft Agents AI Framework -->
-    <PackageVersion Include="Microsoft.Agents.AI" Version="1.15.0" />
-    <PackageVersion Include="Microsoft.Agents.AI.OpenAI" Version="1.15.0" />
-    <PackageVersion Include="Microsoft.Agents.AI.Anthropic" Version="1.15.0-preview.260722.1" />
-    <PackageVersion Include="Microsoft.Agents.AI.Foundry" Version="1.15.0-preview.260722.1" />
+    <PackageVersion Include="Microsoft.Agents.AI" Version="1.16.0" />
+    <PackageVersion Include="Microsoft.Agents.AI.OpenAI" Version="1.16.0" />
+    <PackageVersion Include="Microsoft.Agents.AI.Anthropic" Version="1.16.0-preview.260730.1" />
+    <PackageVersion Include="Microsoft.Agents.AI.Foundry" Version="1.16.0-preview.260730.1" />
     <!-- Azure -->
     <PackageVersion Include="Azure.Identity" Version="1.21.0" />
     <PackageVersion Include="Azure.AI.OpenAI" Version="2.9.0-beta.1" />
     <!-- Microsoft Extensions -->
-    <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.8.1" />
+    <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.8.3" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.10" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.10" />
     <!-- Third-party AI SDKs -->
-    <PackageVersion Include="Google.GenAI" Version="1.15.0" />
-    <PackageVersion Include="Anthropic" Version="12.37.0" />
+    <PackageVersion Include="Google.GenAI" Version="1.16.0" />
+    <PackageVersion Include="Anthropic" Version="12.39.0" />
     <PackageVersion Include="Mistral.SDK" Version="2.3.1" />
-    <PackageVersion Include="ModelContextProtocol" Version="1.4.1" />
-    <PackageVersion Include="AWSSDK.BedrockRuntime" Version="4.0.100.6" />
-    <PackageVersion Include="AWSSDK.Extensions.Bedrock.MEAI" Version="4.0.101.6" />
+    <PackageVersion Include="ModelContextProtocol" Version="2.0.0" />
+    <PackageVersion Include="AWSSDK.BedrockRuntime" Version="4.0.100.7" />
+    <PackageVersion Include="AWSSDK.Extensions.Bedrock.MEAI" Version="4.0.101.7" />
     <!-- Code analysis -->
     <PackageVersion Include="JetBrains.Annotations" Version="2026.2.0" />
     <!-- Testing -->

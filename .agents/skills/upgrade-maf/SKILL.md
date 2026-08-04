@@ -18,7 +18,7 @@ Perform the upgrade in two phases with a mandatory user-confirmation hold after 
    - Package references in every project, including `development`
    - `development/Tests/Tests.csproj`
    - `git status`, the current branch, and configured remotes
-3. Resolve ambiguity before editing. Confirm at least the target Agent Framework version, prerelease policy, build scope, test scope, and release expectations.
+3. Treat invocation with a target Agent Framework version as confirmation of the target version and acceptance of this skill's documented prerelease policy, build scope, test scope, and release expectations. Do not ask routine clarifying questions for those items. Ask only when the target version is missing or ambiguous, or when the user's instructions conflict with this workflow.
 4. Preserve unrelated user changes.
 
 ## Phase 1: Upgrade and verify

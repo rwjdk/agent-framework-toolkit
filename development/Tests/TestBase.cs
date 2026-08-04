@@ -159,8 +159,7 @@ public abstract class TestsBase
         AgentResponse<MovieResult> response = await agent.RunAsync<MovieResult>("Top 3 IMDB Movies", cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(3, response.Result.Movies.Count);
     }
-
-
+    
     [UsedImplicitly]
     private record MovieResult(List<Movie> Movies);
 
@@ -270,7 +269,7 @@ public abstract class TestsBase
             case AgentProvider.Mistral:
             {
                 MistralAgentFactory factory = new(secrets.MistralApiKey);
-                string model = "mistral-small-2506";
+                string model = "mistral-small-2603";
                 return scenario switch
                 {
                     AgentScenario.Simple => factory.CreateAgent(model, TestInstructions, TestName, tools),

@@ -20,6 +20,9 @@ public sealed class OpenRouterTests : TestsBase
     public Task AgentFactory_ToolCall_ChatClient() => ToolCallAgentTestsAsync(AgentProvider.OpenRouterChatClient);
 
     [Fact]
+    public Task AgentFactory_ToolCall_ResponsesApi() => ToolCallAgentTestsAsync(AgentProvider.OpenRouterResponsesApi);
+    
+    [Fact]
     public Task AgentFactory_McpToolCall_ChatClient() => McpToolCallAgentTestsAsync(AgentProvider.OpenRouterChatClient);
 
     [Fact]

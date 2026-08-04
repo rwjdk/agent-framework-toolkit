@@ -6,8 +6,13 @@ namespace AgentFrameworkToolkit.MicrosoftFoundry;
 /// Option for creating a new Hosted Agent
 /// </summary>
 [PublicAPI]
-public class HostedAgentCreationOptions : HostedAgentOptions
+public class HostedAgentCreationOptions
 {
+    /// <summary>
+    /// The Unique Name of the Agent
+    /// </summary>
+    public required string Name { get; set; }
+
     /// <summary>
     /// The .NET runtime (Example : dotnet_10)
     /// </summary>

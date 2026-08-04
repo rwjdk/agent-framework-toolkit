@@ -63,7 +63,7 @@ bool agentCreated = false;
 
 try
 {
-    MicrosoftFoundryAgent agent = agentFactory.CreateAgent(new MicrosoftFoundryDeclarativeAgentOptions
+    MicrosoftFoundryAgent agent = agentFactory.CreateAgent(new DeclarativeAgentCreationOptions
     {
         Name = agentName,
         Model = "gpt-5-nano",
@@ -101,10 +101,70 @@ The factory provides three creation levels:
 | Overload | Use case |
 | --- | --- |
 | `CreateAgent(string agentName, string model, ...)` | Create a simple declarative agent with instructions and local tools. |
-| `CreateAgent(MicrosoftFoundryDeclarativeAgentOptions options)` | Configure local tools, MCP tools, web search, code interpreter, reasoning, and middleware. |
+| `CreateAgent(DeclarativeAgentCreationOptions options)` | Configure local tools, MCP tools, web search, code interpreter, reasoning, and middleware. |
 | `CreateAgent(string agentName, DeclarativeAgentDefinition definition)` | Supply the raw Microsoft Foundry definition for advanced scenarios. |
 
 The returned `MicrosoftFoundryAgent` is a regular Microsoft Agent Framework `AIAgent` and can be run with `RunAsync` or used anywhere an `AIAgent` is accepted.
+
+## Hosted Agents
+
+`MicrosoftFoundryHostedAgentFactory` deploys a .NET agent project to Microsoft Foundry managed hosting. Foundry builds the source remotely and stores the deployment as a hosted agent version. Creating an agent again with the same name deploys a new version.
+
+The hosted factory is available from `MicrosoftFoundryAgentFactory.HostedAgentFactory`, or it can be constructed directly from a `MicrosoftFoundryConnection` or project endpoint.
+
+### Deploy a hosted agent
+
+```cs
+MicrosoftFoundryAgentFactory agentFactory = new(
+    "<projectEndpoint>",
+    new AzureCliCredential());
+
+MicrosoftFoundryHostedAgentFactory hostedFactory = agentFactory.HostedAgentFactory;
+
+MicrosoftFoundryAgent agent = hostedFactory.CreateAgent(new HostedAgentCreationOptions
+{
+    Name = "my-hosted-agent",
+    SourceDirectory = Path.GetFullPath("../MyHostedAgent"),
+    AssemblyName = "MyHostedAgent.dll",
+    DotNetRuntime = "dotnet_10",
+    Cpu = "0.5",
+    Memory = "1Gi"
+});
+
+AgentResponse response = await agent.RunAsync("Hello Foundry!");
+Console.WriteLine(response);
+```
+
+`CreateAgent` uploads the source project, waits for the new version to become active, and returns a `MicrosoftFoundryAgent` connected to the deployed endpoint. If the deployment fails, it throws an `InvalidOperationException` containing the final deployment status.
+
+| Option | Description |
+| --- | --- |
+| `Name` | Unique hosted agent name. Reusing the name deploys a new version. |
+| `SourceDirectory` | Directory containing the hosted agent's project and C# source files. |
+| `AssemblyName` | DLL produced by the project and used as the hosted process entry point. |
+| `DotNetRuntime` | Foundry .NET runtime, for example `dotnet_10`. |
+| `Cpu` | Hosted CPU allocation: `"0.5"`, `"1"`, or `"2"`. |
+| `Memory` | Hosted memory allocation: `"1Gi"`, `"2Gi"`, or `"4Gi"`. |
+
+The source directory is copied to a temporary staging directory before upload. `launchSettings.json`, `bin`, `obj`, `.git`, and `.vs` content is excluded, and Foundry performs dependency restoration and compilation using its remote build.
+
+### Connect to an existing hosted agent
+
+Use the deployed agent name to connect without uploading or creating a new version:
+
+```cs
+MicrosoftFoundryAgentFactory agentFactory = new(
+    "<projectEndpoint>",
+    new AzureCliCredential());
+
+MicrosoftFoundryAgent agent =
+    agentFactory.HostedAgentFactory.GetAgent("my-hosted-agent");
+
+AgentResponse response = await agent.RunAsync("Hello again!");
+Console.WriteLine(response);
+```
+
+The returned `MicrosoftFoundryAgent` is a regular Microsoft Agent Framework `AIAgent`, so it supports sessions, `RunAsync`, and other Agent Framework features.
 
 ### Normal Code Example (RBAC)
 ```cs
