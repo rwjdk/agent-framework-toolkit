@@ -140,7 +140,7 @@ public class AzureOpenAIConnection
             RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
         public static readonly Regex OpenAiPattern = new(
-            @"^https://.+?\.openai\.azure\.com(?<suffix>/openai/v1(?:/.+)?)$",
+            @"^https://.+?\.openai\.azure\.com(?<suffix>/openai/v1(?:/.*)?)$",
             RegexOptions.CultureInvariant | RegexOptions.Compiled);
         
         public static string RemoveSuffixIfMatches(Regex regex, string input)

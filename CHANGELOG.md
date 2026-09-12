@@ -3,7 +3,11 @@
 ## Version 1.21.0 (11th of September 2026)
 - Updated Agent Framework from 1.20.0 to 1.21.0
 - Updated all NuGet packages to the latest
-- Replaced the Azure.AI.OpenAI dependency with the OpenAI SDK for Azure OpenAI v1 endpoints
+- **[BREAKING]** Replaced the `Azure.AI.OpenAI` dependency with the `OpenAI` NuGet package, following Microsoft’s recommendation and ensuring compatibility with Microsoft Agent Framework 1.21.0.
+  For most scenarios, no code changes are required. However, this changes the public API for consumers using:
+  - `AzureOpenAIConnection.GetClient()`, which now returns `OpenAIClient`.
+  - `AzureOpenAIConnection.AdditionalOpenAIClientOptions`, which now configures `OpenAIClientOptions`.
+  These are the corresponding types from the unified `OpenAI` SDK.
 
 ---
 
