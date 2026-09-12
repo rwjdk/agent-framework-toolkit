@@ -1,11 +1,12 @@
 using AgentFrameworkToolkit.OpenAI;
-using Azure.AI.OpenAI;
 using Azure.Core;
 using System.ClientModel;
 using System.ClientModel.Primitives;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
+using OpenAI;
+#pragma warning disable OPENAI001
 
 namespace AgentFrameworkToolkit.AzureOpenAI;
 
@@ -73,9 +74,9 @@ public class AzureOpenAIConnection
     public TokenCredential? Credentials { get; set; }
 
     /// <summary>
-    /// An Action that allow you to set additional options on the AzureOpenAIClientOptions
+    /// An Action that allows you to set additional options on the OpenAIClientOptions
     /// </summary>
-    public Action<AzureOpenAIClientOptions>? AdditionalAzureOpenAIClientOptions { get; set; }
+    public Action<OpenAIClientOptions>? AdditionalOpenAIClientOptions { get; set; }
 
     /// <summary>
     /// The timeout value of the LLM Call (if not defined the underlying infrastructure's default will be used)
@@ -87,10 +88,11 @@ public class AzureOpenAIConnection
     /// </summary>
     /// <param name="rawHttpCallDetails">An Action, if set, will attach an HTTP Message Handler so you can see the raw HTTP Calls that are sent to the LLM</param>
     /// <returns>The Raw Client</returns>
-    public AzureOpenAIClient GetClient(Action<RawCallDetails>? rawHttpCallDetails = null)
+    public OpenAIClient GetClient(Action<RawCallDetails>? rawHttpCallDetails = null)
     {
-        AzureOpenAIClientOptions azureOpenAIClientOptions = new()
+        OpenAIClientOptions openAIClientOptions = new()
         {
+            Endpoint = new Uri($"{GetEndpointUrl().TrimEnd('/')}/openai/v1/"),
             NetworkTimeout = NetworkTimeout
         };
 
@@ -98,12 +100,29 @@ public class AzureOpenAIConnection
         if (rawHttpCallDetails != null)
         {
             HttpClient inspectingHttpClient = new(new RawCallDetailsHttpHandler(rawHttpCallDetails));
-            azureOpenAIClientOptions.Transport = new HttpClientPipelineTransport(inspectingHttpClient);
+            openAIClientOptions.Transport = new HttpClientPipelineTransport(inspectingHttpClient);
         }
 
-        AdditionalAzureOpenAIClientOptions?.Invoke(azureOpenAIClientOptions);
+        AdditionalOpenAIClientOptions?.Invoke(openAIClientOptions);
 
+        if (!string.IsNullOrWhiteSpace(ApiKey))
+        {
+            return new OpenAIClient(new ApiKeyCredential(ApiKey!), openAIClientOptions);
+        }
 
+        // ReSharper disable once ConvertIfStatementToReturnStatement
+        if (Credentials != null)
+        {
+            return new OpenAIClient(
+                new BearerTokenPolicy(Credentials, "https://ai.azure.com/.default"),
+                openAIClientOptions);
+        }
+
+        throw new AgentFrameworkToolkitException("Neither APIKey nor TokenCredentials was provided in the AzureConnection");
+    }
+
+    private string GetEndpointUrl()
+    {
         string endpointUrl = Endpoint;
         if (AutoCorrectFoundryEndpoint)
         {
@@ -111,19 +130,7 @@ public class AzureOpenAIConnection
             endpointUrl = AzureAiUrlHelper.RemoveSuffixIfMatches(AzureAiUrlHelper.OpenAiPattern, endpointUrl);
         }
 
-        Uri endpoint = new(endpointUrl);
-        if (!string.IsNullOrWhiteSpace(ApiKey))
-        {
-            return new AzureOpenAIClient(endpoint, new ApiKeyCredential(ApiKey!), azureOpenAIClientOptions);
-        }
-
-        // ReSharper disable once ConvertIfStatementToReturnStatement
-        if (Credentials != null)
-        {
-            return new AzureOpenAIClient(endpoint, Credentials, azureOpenAIClientOptions);
-        }
-
-        throw new AgentFrameworkToolkitException("Neither APIKey nor TokenCredentials was provided in the AzureConnection");
+        return endpointUrl;
     }
 
     internal static class AzureAiUrlHelper

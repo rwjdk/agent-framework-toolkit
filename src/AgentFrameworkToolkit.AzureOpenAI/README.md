@@ -92,7 +92,7 @@ AzureOpenAIAgentFactory agentFactory = new AzureOpenAIAgentFactory(new AzureOpen
     Credentials = null, //Set RBAC Credentials
     DefaultClientType = ClientType.ResponsesApi, //Set default Client Type for each agent (ChatClient or ResponsesAPI)
     AutoCorrectFoundryEndpoint = true, //Autocorrect Foundry project URLs to the Azure OpenAI endpoint
-    AdditionalAzureOpenAIClientOptions = options =>
+    AdditionalOpenAIClientOptions = options =>
     {
         //Set additional properties if needed
     }

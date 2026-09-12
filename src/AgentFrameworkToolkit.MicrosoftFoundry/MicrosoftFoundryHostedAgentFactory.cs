@@ -5,6 +5,7 @@ using JetBrains.Annotations;
 using Microsoft.Agents.AI;
 using OpenAI.Responses;
 using System.ClientModel;
+#pragma warning disable OPENAI001
 
 namespace AgentFrameworkToolkit.MicrosoftFoundry;
 

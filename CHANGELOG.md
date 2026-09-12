@@ -1,5 +1,12 @@
 # Changelog - Agent Framework Toolkit
 
+## Version 1.21.0 (11th of September 2026)
+- Updated Agent Framework from 1.20.0 to 1.21.0
+- Updated all NuGet packages to the latest
+- Replaced the Azure.AI.OpenAI dependency with the OpenAI SDK for Azure OpenAI v1 endpoints
+
+---
+
 ## Version 1.20.0 (31st of August 2026)
 - Updated Agent Framework from 1.19.0 to 1.20.0
 - Updated all NuGet packages to the latest

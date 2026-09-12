@@ -7,7 +7,7 @@
 	<Import Project="..\..\nuget-package.props" />
 
 	<ItemGroup>
-		<PackageReference Include="Azure.AI.OpenAI" />
+		<PackageReference Include="Azure.Core" />
 		<PackageReference Include="Microsoft.Agents.AI.OpenAI" />
 	</ItemGroup>
 	<ItemGroup>

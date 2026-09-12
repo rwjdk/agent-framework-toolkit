@@ -2,8 +2,8 @@ using System.Diagnostics.CodeAnalysis;
 using AgentFrameworkToolkit.OpenAI.Batching;
 using Azure.Core;
 using System.Text.Json;
-using Azure.AI.OpenAI;
 using JetBrains.Annotations;
+using OpenAI;
 
 #pragma warning disable OPENAI001
 
@@ -35,7 +35,7 @@ public class AzureOpenAIBatchRunner
             Endpoint = endpoint,
             ApiKey = apiKey
         };
-        AzureOpenAIClient client = Connection.GetClient();
+        OpenAIClient client = Connection.GetClient();
         _internalBatchRunner = new InternalBatchRunner(client.GetBatchClient(), client.GetOpenAIFileClient(), true);
     }
 
@@ -51,7 +51,7 @@ public class AzureOpenAIBatchRunner
             Endpoint = endpoint,
             Credentials = credentials
         };
-        AzureOpenAIClient client = Connection.GetClient();
+        OpenAIClient client = Connection.GetClient();
         _internalBatchRunner = new InternalBatchRunner(client.GetBatchClient(), client.GetOpenAIFileClient(), true);
     }
 
@@ -62,7 +62,7 @@ public class AzureOpenAIBatchRunner
     public AzureOpenAIBatchRunner(AzureOpenAIConnection connection)
     {
         Connection = connection;
-        AzureOpenAIClient client = Connection.GetClient();
+        OpenAIClient client = Connection.GetClient();
         _internalBatchRunner = new InternalBatchRunner(client.GetBatchClient(), client.GetOpenAIFileClient(), true);
     }
 
