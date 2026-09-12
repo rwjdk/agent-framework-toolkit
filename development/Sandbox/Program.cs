@@ -43,10 +43,10 @@ IList<AITool> toolsTwoSources = twoSourceSkills.GetAsTools();
 
 
 //await Sandbox.Providers.AnthropicDemo.RunAsync();
-await Sandbox.Providers.MicrosoftFoundry.RunAsync();
+//await Sandbox.Providers.MicrosoftFoundry.RunAsync();
 //await Sandbox.Providers.AmazonBedrock.RunAsync();
 //await Sandbox.Providers.OpenAI.RunAsync();
-//await AzureOpenAI.RunAsync();
+await AzureOpenAI.RunAsync();
 //await Sandbox.Providers.Mistral.RunAsync();
 //await Sandbox.Providers.Google.RunAsync();
 //await Sandbox.Providers.Groq.RunAsync();

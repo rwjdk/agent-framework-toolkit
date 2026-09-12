@@ -3,6 +3,7 @@ using Azure.Core;
 using JetBrains.Annotations;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
+using OpenAI;
 
 namespace AgentFrameworkToolkit.AzureOpenAI;
 
@@ -81,7 +82,7 @@ public class AzureOpenAIAgentFactory
     /// <returns>The Agent</returns>
     public AzureOpenAIAgent CreateAgent(AgentOptions options)
     {
-        global::OpenAI.OpenAIClient client = Connection.GetClient(options.RawHttpCallDetails);
+        OpenAIClient client = Connection.GetClient(options.RawHttpCallDetails);
         ChatClientAgent innerAgent = OpenAIAgentFactory.GetChatClientAgent(options, client, options.Model, Connection.DefaultClientType);
         return new AzureOpenAIAgent(MiddlewareHelper.ApplyMiddleware(
             innerAgent,

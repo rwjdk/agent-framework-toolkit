@@ -11,7 +11,6 @@
     <PackageVersion Include="Microsoft.Agents.AI.Anthropic" Version="1.21.0-preview.260911.1" />
     <PackageVersion Include="Microsoft.Agents.AI.Foundry" Version="1.21.0-preview.260911.1" />
     <!-- Azure -->
-    <PackageVersion Include="Azure.Core" Version="1.62.0" />
     <PackageVersion Include="Azure.Identity" Version="1.21.0" />
     <!-- Microsoft Extensions -->
     <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.10.0" />

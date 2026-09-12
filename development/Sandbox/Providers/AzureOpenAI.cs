@@ -26,20 +26,9 @@ public static class AzureOpenAI
     public static async Task RunAsync()
     {
         Secrets.Secrets secrets = SecretsManager.GetSecrets();
-
-        OpenAIClient client = new(
-            new ApiKeyCredential(secrets.AzureOpenAiKey),
-            new OpenAIClientOptions
-            {
-                Endpoint = new Uri($"{secrets.AzureOpenAiEndpoint.TrimEnd('/')}/openai/v1/")
-            });
-        ChatClientAgent agent2 = client.GetResponsesClient().AsAIAgent(model: "gpt-4.1");
-        AgentResponse agentResponse = await agent2.RunAsync("Hello");
-
-
         AzureOpenAIConnection connection = new AzureOpenAIConnection
         {
-            Endpoint = secrets.AzureOpenAiEndpoint,
+            Endpoint = "https://sensum365ai.openai.azure.com/openai/v1/",
             ApiKey = secrets.AzureOpenAiKey,
         };
         
@@ -47,13 +36,12 @@ public static class AzureOpenAI
 
         AzureOpenAIAgent agent = factory.CreateAgent(new AgentOptions
         {
-            Model = "gpt-5-mini",
+            Model = "gpt-5.6-luna",
             ReasoningEffort = OpenAIReasoningEffort.Low,
             ClientType = ClientType.ResponsesApi,
             
             RawToolCallDetails = Console.WriteLine
         });
-
         AgentSession session = await agent.CreateSessionAsync();
 
         AgentResponse response = await agent.RunAsync("What is the capital of France?", session);
