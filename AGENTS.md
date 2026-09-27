@@ -93,5 +93,6 @@ PI changes intentional and minimal; avoid broad refactors unless the user asks f
 ## Repo update checklist (when relevant)
 - If a new project or package is added: update `AgentFrameworkToolkit.slnx` and `Directory.Packages.props`.
 - If a public API or user-facing behavior changes: update `CHANGELOG.md`. Update an affected README or provider README when usage instructions change.
+- Omit the `Unreleased` heading from `CHANGELOG.md` when it has no entries; move its entries into the version being released.
 - For routine model-name additions, update code and `CHANGELOG.md` only. Update READMEs only when usage instructions change or the user explicitly requests it.
 - If documentation or samples change: keep `README.md` and provider documentation consistent with the code.

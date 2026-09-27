@@ -47,7 +47,7 @@ public static class HttpClientTools
                 httpClient.DefaultRequestHeaders.Accept.Clear();
                 httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(acceptHeader));
             }
-            HttpResponseMessage response = await httpClient.GetAsync(url);
+            HttpResponseMessage response = await SendAsync(httpClient, url, HttpMethod.Get, null, options);
             return await FormatResponseAsync(response, options);
         }, toolName ?? "http_get", toolDescription ?? "Send an HTTP GET request to retrieve data from a URL");
     }
@@ -65,8 +65,7 @@ public static class HttpClientTools
         {
             HttpClient httpClient = GetHttpClient(options);
             GuardThatOperationsAreWithinConfinedDomains(url, httpClient.BaseAddress, options);
-            StringContent content = new(body, Encoding.UTF8, contentType);
-            HttpResponseMessage response = await httpClient.PostAsync(url, content);
+            HttpResponseMessage response = await SendAsync(httpClient, url, HttpMethod.Post, () => new StringContent(body, Encoding.UTF8, contentType), options);
             return await FormatResponseAsync(response, options);
         }, toolName ?? "http_post", toolDescription ?? "Send an HTTP POST request to submit data to a URL");
     }
@@ -84,8 +83,7 @@ public static class HttpClientTools
         {
             HttpClient httpClient = GetHttpClient(options);
             GuardThatOperationsAreWithinConfinedDomains(url, httpClient.BaseAddress, options);
-            StringContent content = new(body, Encoding.UTF8, contentType);
-            HttpResponseMessage response = await httpClient.PutAsync(url, content);
+            HttpResponseMessage response = await SendAsync(httpClient, url, HttpMethod.Put, () => new StringContent(body, Encoding.UTF8, contentType), options);
             return await FormatResponseAsync(response, options);
         }, toolName ?? "http_put", toolDescription ?? "Send an HTTP PUT request to update data at a URL");
     }
@@ -103,8 +101,7 @@ public static class HttpClientTools
         {
             HttpClient httpClient = GetHttpClient(options);
             GuardThatOperationsAreWithinConfinedDomains(url, httpClient.BaseAddress, options);
-            StringContent content = new(body, Encoding.UTF8, contentType);
-            HttpResponseMessage response = await httpClient.PatchAsync(url, content);
+            HttpResponseMessage response = await SendAsync(httpClient, url, HttpMethod.Patch, () => new StringContent(body, Encoding.UTF8, contentType), options);
             return await FormatResponseAsync(response, options);
         }, toolName ?? "http_patch", toolDescription ?? "Send an HTTP PATCH request to partially update data at a URL");
     }
@@ -122,7 +119,7 @@ public static class HttpClientTools
         {
             HttpClient httpClient = GetHttpClient(options);
             GuardThatOperationsAreWithinConfinedDomains(url, httpClient.BaseAddress, options);
-            HttpResponseMessage response = await httpClient.DeleteAsync(url);
+            HttpResponseMessage response = await SendAsync(httpClient, url, HttpMethod.Delete, null, options);
             return await FormatResponseAsync(response, options);
         }, toolName ?? "http_delete", toolDescription ?? "Send an HTTP DELETE request to remove data at a URL");
     }
@@ -140,15 +137,28 @@ public static class HttpClientTools
         {
             HttpClient httpClient = GetHttpClient(options);
             GuardThatOperationsAreWithinConfinedDomains(url, httpClient.BaseAddress, options);
-            HttpRequestMessage request = new(HttpMethod.Head, url);
-            HttpResponseMessage response = await httpClient.SendAsync(request);
+            HttpResponseMessage response = await SendAsync(httpClient, url, HttpMethod.Head, null, options);
             return await FormatResponseAsync(response, options, includeBody: false);
         }, toolName ?? "http_head", toolDescription ?? "Send an HTTP HEAD request to retrieve headers from a URL without the body");
     }
 
     private static HttpClient GetHttpClient(HttpClientToolsOptions? options)
     {
-        return options?.HttpClientFactory?.Invoke() ?? new HttpClient();
+        return options?.HttpClientFactory?.Invoke() ?? (options?.ConfinedToTheseDomains == null ? new HttpClient() : ConfinedHttpRedirects.CreateClient());
+    }
+
+    private static async Task<HttpResponseMessage> SendAsync(HttpClient client, string url, HttpMethod method, Func<HttpContent?>? contentFactory, HttpClientToolsOptions? options)
+    {
+        if (options?.ConfinedToTheseDomains != null)
+        {
+            Uri uri = GetAbsoluteUri(url, client.BaseAddress) ?? throw new InvalidOperationException($"Operations on URL '{url}' cannot be validated against allowed domains.");
+            return await ConfinedHttpRedirects.SendAsync(client, uri, method, contentFactory, HttpCompletionOption.ResponseContentRead,
+                target => GuardThatOperationsAreWithinConfinedDomains(target.ToString(), null, options));
+        }
+
+        using HttpRequestMessage request = new(method, url);
+        request.Content = contentFactory?.Invoke();
+        return await client.SendAsync(request);
     }
 
     private static void GuardThatOperationsAreWithinConfinedDomains(string url, Uri? baseAddress, HttpClientToolsOptions? options)

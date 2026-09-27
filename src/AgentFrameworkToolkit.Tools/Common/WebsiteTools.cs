@@ -51,7 +51,10 @@ public static class WebsiteTools
         GuardThatOperationsAreWithinConfinedDomains(uri, options);
 
         HttpClient httpClient = GetHttpClient(options);
-        HttpResponseMessage response = await httpClient.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+        HttpResponseMessage response = options.ConfinedToTheseDomains == null
+            ? await httpClient.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false)
+            : await ConfinedHttpRedirects.SendAsync(httpClient, uri, HttpMethod.Get, null, HttpCompletionOption.ResponseHeadersRead,
+                target => GuardThatOperationsAreWithinConfinedDomains(target, options)).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
         string content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -80,7 +83,7 @@ public static class WebsiteTools
 
     private static HttpClient GetHttpClient(GetContentOfPageOptions options)
     {
-        return options.HttpClientFactory?.Invoke() ?? new HttpClient();
+        return options.HttpClientFactory?.Invoke() ?? (options.ConfinedToTheseDomains == null ? new HttpClient() : ConfinedHttpRedirects.CreateClient());
     }
 
     private static void GuardThatOperationsAreWithinConfinedDomains(Uri uri, GetContentOfPageOptions options)
