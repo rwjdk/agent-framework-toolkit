@@ -1,5 +1,10 @@
 # Changelog - Agent Framework Toolkit
 
+## Version 1.22.2 (27th of September 2026)
+- `HttpClientTools` and `WebsiteTools` now throw when `HttpClientFactory` is combined with `ConfinedToTheseDomains`, preventing unverified automatic redirects.
+
+---
+
 ## Version 1.22.1 (27th of September 2026)
 - Fixed domain confinement bypass through HTTP redirects in HttpClientTools and WebsiteTools.
 - Updated model name constants across providers.

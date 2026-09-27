@@ -1,6 +1,9 @@
 using System.Net;
+using System.Net.Sockets;
 using System.Reflection;
+using System.Text;
 using AgentFrameworkToolkit.Tools.Common;
+using Microsoft.Extensions.AI;
 
 namespace AgentFrameworkToolkit.Tests.Tools;
 
@@ -27,8 +30,9 @@ public class HttpRedirectConfinementTests
     }
 
     [Fact]
-    public async Task WebsiteTools_RejectsRedirectOutsideAllowedDomainAsync()
+    public async Task WebsiteTools_RejectsCustomClientBeforeNetworkAsync()
     {
+        bool factoryCalled = false;
         RecordingHandler handler = new((request, _) => new HttpResponseMessage(HttpStatusCode.Redirect)
         {
             Headers = { Location = new Uri("http://localhost/private") }
@@ -36,11 +40,52 @@ public class HttpRedirectConfinementTests
         GetContentOfPageOptions options = new()
         {
             ConfinedToTheseDomains = ["allowed.example.com"],
-            HttpClientFactory = () => new HttpClient(handler)
+            HttpClientFactory = () =>
+            {
+                factoryCalled = true;
+                return new HttpClient(handler);
+            }
         };
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => GetWebsiteContentAsync("http://allowed.example.com/start", options));
-        Assert.Equal(["allowed.example.com"], handler.RequestHosts);
+        AIFunction tool = (AIFunction)WebsiteTools.GetContentOfPage(options);
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await tool.InvokeAsync(new AIFunctionArguments { ["url"] = "http://allowed.example.com/start" }, TestContext.Current.CancellationToken));
+        Assert.False(factoryCalled);
+        Assert.Empty(handler.RequestHosts);
+    }
+
+    [Fact]
+    public async Task WebsiteTools_DefaultClientRejectsRedirectOutsideAllowedDomainAsync()
+    {
+        using TcpListener listener = new(IPAddress.Loopback, 0);
+        listener.Start();
+        int port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(10));
+        Task serverTask = RespondWithRedirectAsync(listener, port, timeout.Token);
+        GetContentOfPageOptions options = new() { ConfinedToTheseDomains = ["127.0.0.1"] };
+        AIFunction tool = (AIFunction)WebsiteTools.GetContentOfPage(options);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await tool.InvokeAsync(new AIFunctionArguments { ["url"] = $"http://127.0.0.1:{port}/start" }, TestContext.Current.CancellationToken));
+        await serverTask;
+    }
+
+    [Fact]
+    public async Task HttpClientTools_RejectsCustomClientBeforeNetworkAsync()
+    {
+        bool factoryCalled = false;
+        HttpClientToolsOptions options = new()
+        {
+            ConfinedToTheseDomains = ["allowed.example.com"],
+            HttpClientFactory = () =>
+            {
+                factoryCalled = true;
+                return new HttpClient();
+            }
+        };
+        AIFunction tool = (AIFunction)HttpClientTools.Get(options);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await tool.InvokeAsync(new AIFunctionArguments { ["url"] = "http://allowed.example.com/start" }, TestContext.Current.CancellationToken));
+        Assert.False(factoryCalled);
     }
 
     [Fact]
@@ -81,11 +126,17 @@ public class HttpRedirectConfinementTests
         return await task;
     }
 
-    private static async Task<string> GetWebsiteContentAsync(string url, GetContentOfPageOptions options)
+    private static async Task RespondWithRedirectAsync(TcpListener listener, int port, CancellationToken cancellationToken)
     {
-        MethodInfo method = typeof(WebsiteTools).GetMethod("GetContentAsync", BindingFlags.NonPublic | BindingFlags.Static)!;
-        Task<string> task = (Task<string>)method.Invoke(null, [url, options])!;
-        return await task;
+        using TcpClient client = await listener.AcceptTcpClientAsync(cancellationToken);
+        using NetworkStream stream = client.GetStream();
+        using StreamReader reader = new(stream, Encoding.ASCII, leaveOpen: true);
+        while (!string.IsNullOrEmpty(await reader.ReadLineAsync(cancellationToken)))
+        {
+        }
+        byte[] response = Encoding.ASCII.GetBytes($"HTTP/1.1 302 Found\r\nLocation: http://localhost:{port}/private\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+        await stream.WriteAsync(response, cancellationToken);
+        listener.Stop();
     }
 
     private sealed class RecordingHandler(Func<HttpRequestMessage, int, HttpResponseMessage> respond) : HttpMessageHandler

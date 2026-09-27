@@ -83,6 +83,11 @@ public static class WebsiteTools
 
     private static HttpClient GetHttpClient(GetContentOfPageOptions options)
     {
+        if (options.ConfinedToTheseDomains != null && options.HttpClientFactory != null)
+        {
+            throw new InvalidOperationException("HttpClientFactory cannot be used with ConfinedToTheseDomains because its redirect behavior cannot be verified.");
+        }
+
         return options.HttpClientFactory?.Invoke() ?? (options.ConfinedToTheseDomains == null ? new HttpClient() : ConfinedHttpRedirects.CreateClient());
     }
 
@@ -140,7 +145,7 @@ public class GetContentOfPageOptions
     public IList<string>? ConfinedToTheseDomains { get; set; }
 
     /// <summary>
-    /// HTTP Client Factory (if not specified a new HttpClient is generated)
+    /// HTTP Client Factory (if not specified a new HttpClient is generated). Cannot be used with ConfinedToTheseDomains.
     /// </summary>
     public Func<HttpClient>? HttpClientFactory { get; set; }
 
