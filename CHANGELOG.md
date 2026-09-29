@@ -1,5 +1,11 @@
 # Changelog - Agent Framework Toolkit
 
+## Version 1.23.0 (29th of September 2026)
+- Updated Agent Framework from 1.22.0 to 1.23.0
+- Updated all NuGet packages to the latest
+
+---
+
 ## Version 1.22.2 (27th of September 2026)
 - `HttpClientTools` and `WebsiteTools` now throw when `HttpClientFactory` is combined with `ConfinedToTheseDomains`, preventing unverified automatic redirects.
 
