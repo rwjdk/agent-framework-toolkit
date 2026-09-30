@@ -15,6 +15,67 @@ namespace AgentFrameworkToolkit.Tests;
 
 public class ProviderRawRepresentationFactoryTests
 {
+    [Theory]
+    [InlineData(OpenAIReasoningSummaryVerbosity.Auto, false)]
+    [InlineData(OpenAIReasoningSummaryVerbosity.Concise, false)]
+    [InlineData(OpenAIReasoningSummaryVerbosity.Detailed, false)]
+    [InlineData(OpenAIReasoningSummaryVerbosity.Auto, true)]
+    [InlineData(OpenAIReasoningSummaryVerbosity.Concise, true)]
+    [InlineData(OpenAIReasoningSummaryVerbosity.Detailed, true)]
+    public void OpenAIResponsesApiFactoryPreservesSummaryWithoutEffort(OpenAIReasoningSummaryVerbosity summaryVerbosity, bool includeOtherOptions)
+    {
+        foreach (ClientType? clientType in new ClientType?[] { ClientType.ResponsesApi, null })
+        {
+            ChatClientAgentOptions agentOptions = OpenAIAgentFactory.CreateChatClientAgentOptions(new OpenAIAgentOptions
+            {
+                Model = OpenAIChatModels.Gpt5,
+                ClientType = clientType,
+                ReasoningSummaryVerbosity = summaryVerbosity,
+                StoredOutputEnabled = includeOtherOptions ? true : null,
+                ServiceTier = includeOtherOptions ? OpenAIServiceTier.Priority : null
+            }, clientType.HasValue ? ClientType.ChatClient : ClientType.ResponsesApi);
+
+            Func<IChatClient, object?> factory = GetRawRepresentationFactory(agentOptions);
+            CreateResponseOptions first = Assert.IsType<CreateResponseOptions>(factory(null!));
+            CreateResponseOptions second = Assert.IsType<CreateResponseOptions>(factory(null!));
+
+            Assert.NotSame(first, second);
+            Assert.NotSame(first.ReasoningOptions, second.ReasoningOptions);
+            ResponseReasoningSummaryVerbosity expectedSummary = summaryVerbosity switch
+            {
+                OpenAIReasoningSummaryVerbosity.Auto => ResponseReasoningSummaryVerbosity.Auto,
+                OpenAIReasoningSummaryVerbosity.Concise => ResponseReasoningSummaryVerbosity.Concise,
+                OpenAIReasoningSummaryVerbosity.Detailed => ResponseReasoningSummaryVerbosity.Detailed,
+                _ => throw new ArgumentOutOfRangeException(nameof(summaryVerbosity))
+            };
+
+            foreach (CreateResponseOptions responseOptions in new[] { first, second })
+            {
+                Assert.NotNull(responseOptions.ReasoningOptions);
+                Assert.Null(responseOptions.ReasoningOptions.ReasoningEffortLevel);
+                Assert.Equal(expectedSummary, responseOptions.ReasoningOptions.ReasoningSummaryVerbosity);
+                Assert.Equal(includeOtherOptions ? (bool?)true : null, responseOptions.StoredOutputEnabled);
+                Assert.Equal(includeOtherOptions ? new ResponseServiceTier("priority") : (ResponseServiceTier?)null, responseOptions.ServiceTier);
+            }
+        }
+    }
+
+    [Fact]
+    public void OpenAIResponsesApiFactoryOmitsUnsetReasoningOptions()
+    {
+        ChatClientAgentOptions agentOptions = OpenAIAgentFactory.CreateChatClientAgentOptions(new OpenAIAgentOptions
+        {
+            Model = OpenAIChatModels.Gpt5,
+            ClientType = ClientType.ResponsesApi,
+            StoredOutputEnabled = true
+        }, ClientType.ChatClient);
+
+        CreateResponseOptions responseOptions = Assert.IsType<CreateResponseOptions>(GetRawRepresentationFactory(agentOptions)(null!));
+
+        Assert.True(responseOptions.StoredOutputEnabled);
+        Assert.Null(responseOptions.ReasoningOptions);
+    }
+
     [Fact]
     public void OpenAIResponsesApiFactoryReturnsIndependentConfiguredOptions()
     {

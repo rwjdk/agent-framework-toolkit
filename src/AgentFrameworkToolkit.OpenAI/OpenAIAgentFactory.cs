@@ -189,16 +189,18 @@ public class OpenAIAgentFactory
                     ResponseReasoningSummaryVerbosity? reasoningSummaryVerbosity = ResponseReasonSummaryVerbosityParser();
                     ResponseServiceTier? serviceTier = ResponseServiceTierParser();
 
-                    if (storedOutputEnabled.HasValue || configuredReasoningEffort != null || serviceTier != null)
+                    if (storedOutputEnabled.HasValue || configuredReasoningEffort != null || reasoningSummaryVerbosity.HasValue || serviceTier != null)
                     {
                         anyOptionsSet = true;
                         chatOptions.RawRepresentationFactory = _ => new CreateResponseOptions
                         {
                             StoredOutputEnabled = storedOutputEnabled,
-                            ReasoningOptions = configuredReasoningEffort != null
+                            ReasoningOptions = configuredReasoningEffort != null || reasoningSummaryVerbosity.HasValue
                                 ? new ResponseReasoningOptions
                                 {
-                                    ReasoningEffortLevel = new ResponseReasoningEffortLevel(configuredReasoningEffort),
+                                    ReasoningEffortLevel = configuredReasoningEffort != null
+                                        ? new ResponseReasoningEffortLevel(configuredReasoningEffort)
+                                        : (ResponseReasoningEffortLevel?)null,
                                     ReasoningSummaryVerbosity = reasoningSummaryVerbosity
                                 }
                                 : null,

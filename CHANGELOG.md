@@ -1,8 +1,9 @@
 # Changelog - Agent Framework Toolkit
 
-## Unreleased
+## Version 1.23.1 (30th of September 2026)
 - Added GPT-6.1 Sol and Claude Sonnet 5.5 model constants for their native providers and OpenRouter.
 - OpenAI: Added UltraFast Service Tier
+- Fixed OpenAI Responses API agents dropping `ReasoningSummaryVerbosity` when `ReasoningEffort` is null (aka default reasoning level).
 
 ---
 

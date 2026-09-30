@@ -107,26 +107,26 @@ Upgrade Microsoft Agent Framework to <version>
 
 ### Prepare the GitHub release
 
-1. Use the Chrome browser skill and the user's existing signed-in Chrome session.
-2. Open `https://github.com/rwjdk/agent-framework-toolkit/releases`.
-3. Inspect the immediately previous release and reproduce its tag, title, and body conventions.
-4. Open the new-release form and prepare:
-   - Tag: `<version>`, targeting the pushed branch (normally `main`)
-   - Title: the matching `CHANGELOG.md` heading, for example `Version <version> (<ordinal date>)`
-   - Description: copy the bullet content from the new changelog entry, excluding its heading and separator
-   - Release label: `Latest`, unless the target version is a prerelease
-5. Verify the selected tag, target, title, description, and release label.
-6. Do not click **Publish release**.
-7. Do not click **Save draft** unless the user explicitly requests it.
-8. Leave the completed live form open in Chrome as a handoff.
+1. Use the authenticated GitHub REST API, for example through `gh api`; do not open a browser.
+2. Read `repos/rwjdk/agent-framework-toolkit/releases` and inspect the immediately previous release to reproduce its tag, title, and body conventions. Check whether the target tag or release already exists before creating anything.
+3. Prepare a local JSON payload for `POST repos/rwjdk/agent-framework-toolkit/releases`:
+   - `tag_name`: `<version>`
+   - `target_commitish`: the verified pushed commit SHA (normally on `main`)
+   - `name`: the matching `CHANGELOG.md` heading, for example `Version <version> (<ordinal date>)`
+   - `body`: copy the bullet content from the new changelog entry, excluding its heading and separator
+   - `draft`: `false`
+   - `prerelease`: whether the target version is a prerelease
+   - `make_latest`: `"true"` for stable releases, `"false"` for prereleases
+4. Verify the tag, target commit, title, description, and release label. Preserve actual newlines in the JSON body; pass the payload as a file with `gh api --input` rather than interpolating release notes into shell commands.
+5. Do not create a remote release, draft, or tag until publication is explicitly authorized. Do not create a draft unless the user explicitly requests it.
 
 GitHub creates a newly entered release tag when the release is published. State this clearly if the tag does not yet exist remotely.
 
 ## Hold 2: Publish confirmation
 
-Stop with the prepared form open. Report the commit, push, selected tag, title, release-note content, and label.
+Report the commit, push, selected tag, title, release-note content, and label from the prepared API payload.
 
-The user must review and press **Publish release**. Never publish on their behalf unless they issue a new, explicit instruction to do so.
+Wait for explicit publication approval unless the user has already authorized publishing this release in the current session. After approval, submit the prepared payload through the API and verify the returned release URL, tag, target commit, title, body, published status, and latest/prerelease status. If a request fails or its outcome is uncertain, check for an existing release and tag before retrying; do not overwrite an existing release or move a tag without explicit authorization.
 
 ## Phase 3: Upgrade dependent repositories
 
