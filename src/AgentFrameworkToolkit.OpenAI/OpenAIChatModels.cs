@@ -9,6 +9,11 @@ namespace AgentFrameworkToolkit.OpenAI;
 public static class OpenAIChatModels
 {
     /// <summary>
+    /// GPT-6.1 Sol (Reasoning)
+    /// </summary>
+    public const string Gpt61Sol = "gpt-6.1-sol";
+
+    /// <summary>
     /// GPT-6 Astra (Reasoning)
     /// </summary>
     public const string Gpt6Astra = "gpt-6-astra";
@@ -161,5 +166,5 @@ public static class OpenAIChatModels
     /// <summary>
     /// Known Reasoning Models
     /// </summary>
-    public static string[] ReasoningModels = [Gpt5, Gpt5Pro, Gpt51, Gpt5Mini, Gpt5Nano, Gpt5Codex, Gpt51Codex, Gpt51CodexMax, Gpt52Pro, Gpt52, Gpt52Codex, Gpt53Codex, Gpt54, Gpt54Pro, Gpt54Mini, Gpt54Nano, Gpt55, Gpt55Pro, Gpt56Sol, Gpt56Terra, Gpt56Luna, Gpt6Astra, Gpt6Sol, Gpt6Luna];
+    public static string[] ReasoningModels = [Gpt5, Gpt5Pro, Gpt51, Gpt5Mini, Gpt5Nano, Gpt5Codex, Gpt51Codex, Gpt51CodexMax, Gpt52Pro, Gpt52, Gpt52Codex, Gpt53Codex, Gpt54, Gpt54Pro, Gpt54Mini, Gpt54Nano, Gpt55, Gpt55Pro, Gpt56Sol, Gpt56Terra, Gpt56Luna, Gpt6Astra, Gpt6Sol, Gpt6Luna, Gpt61Sol];
 }

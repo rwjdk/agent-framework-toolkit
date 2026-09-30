@@ -237,6 +237,7 @@ public class OpenAIAgentFactory
                 OpenAIServiceTier.Flex => new ResponseServiceTier("flex"),
                 OpenAIServiceTier.Default => new ResponseServiceTier("default"),
                 OpenAIServiceTier.Priority => new ResponseServiceTier("priority"),
+                OpenAIServiceTier.Ultrafast => new ResponseServiceTier("ultrafast"),
                 null => (ResponseServiceTier?)null,
                 _ => throw new ArgumentOutOfRangeException(nameof(options.ServiceTier), options.ServiceTier, null)
             };
@@ -250,6 +251,7 @@ public class OpenAIAgentFactory
                 OpenAIServiceTier.Flex => new ChatServiceTier("flex"),
                 OpenAIServiceTier.Default => new ChatServiceTier("default"),
                 OpenAIServiceTier.Priority => new ChatServiceTier("priority"),
+                OpenAIServiceTier.Ultrafast => new ChatServiceTier("ultrafast"),
                 null => (ChatServiceTier?)null,
                 _ => throw new ArgumentOutOfRangeException(nameof(options.ServiceTier), options.ServiceTier, null)
             };

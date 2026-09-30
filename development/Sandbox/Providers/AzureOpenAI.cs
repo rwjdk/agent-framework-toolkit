@@ -1,13 +1,8 @@
-using System.ClientModel;
 using AgentFrameworkToolkit;
 using AgentFrameworkToolkit.AzureOpenAI;
-using AgentFrameworkToolkit.AzureOpenAI.Batching;
 using AgentFrameworkToolkit.OpenAI;
-using AgentFrameworkToolkit.OpenAI.Batching;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
-using OpenAI;
-using OpenAI.Responses;
 using Secrets;
 #pragma warning disable OPENAI001
 #pragma warning disable AFT999
@@ -28,7 +23,7 @@ public static class AzureOpenAI
         Secrets.Secrets secrets = SecretsManager.GetSecrets();
         AzureOpenAIConnection connection = new AzureOpenAIConnection
         {
-            Endpoint = "https://sensum365ai.openai.azure.com/openai/v1/",
+            Endpoint = secrets.AzureOpenAiEndpoint,
             ApiKey = secrets.AzureOpenAiKey,
         };
         

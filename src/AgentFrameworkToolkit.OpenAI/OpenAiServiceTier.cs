@@ -21,7 +21,14 @@ public enum OpenAIServiceTier
     Default,
 
     /// <summary>
-    /// Flex Tier (More Expensive but lover latency)
+    /// Priority Tier (More Expensive but lower latency)
     /// </summary>
-    Priority
+    Priority,
+
+    /// <summary>
+    /// Ultrafast Tier (Much more Expensive but much faster) [Note: Not all models support this tier]
+    /// </summary>
+    Ultrafast,
+
+
 }

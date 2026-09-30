@@ -1,5 +1,11 @@
 # Changelog - Agent Framework Toolkit
 
+## Unreleased
+- Added GPT-6.1 Sol and Claude Sonnet 5.5 model constants for their native providers and OpenRouter.
+- OpenAI: Added UltraFast Service Tier
+
+---
+
 ## Version 1.23.0 (29th of September 2026)
 - Updated Agent Framework from 1.22.0 to 1.23.0
 - Updated all NuGet packages to the latest

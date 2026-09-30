@@ -127,7 +127,7 @@ public class AgentOptions
     public OpenAIServiceTier? ServiceTier { get; set; }
 
     /// <summary>
-    /// sets whether the response should be stored for later retrieval. This corresponds to the "store" property in the JSON representation.
+    /// Sets whether the response should be stored for later retrieval. This corresponds to the "store" property in the JSON representation.
     /// </summary>
     public bool? StoredOutputEnabled { get; set; }
 }

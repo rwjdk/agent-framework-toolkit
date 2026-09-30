@@ -126,6 +126,11 @@ public static class OpenRouterChatModels
         /// </summary>
         public const string ClaudeSonnet5 = "anthropic/claude-sonnet-5";
 
+        /// <summary>
+        /// Claude Sonnet 5.5
+        /// </summary>
+        public const string ClaudeSonnet55 = "anthropic/claude-sonnet-5.5";
+
 
         /// <summary>
         /// Claude Opus 4
@@ -184,6 +189,11 @@ public static class OpenRouterChatModels
     [PublicAPI]
     public static class OpenAI
     {
+        /// <summary>
+        /// GPT-6.1 Sol (Reasoning)
+        /// </summary>
+        public const string Gpt61Sol = "openai/gpt-6.1-sol";
+
         /// <summary>
         /// GPT-6 Astra (Reasoning)
         /// </summary>
