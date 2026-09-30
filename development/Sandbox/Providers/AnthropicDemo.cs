@@ -11,6 +11,7 @@ public static class AnthropicDemo
     {
         Secrets.Secrets secrets = SecretsManager.GetSecrets();
 
+
         AnthropicAgentFactory agentFactory = new AnthropicAgentFactory(secrets.AnthropicApiKey);
 
         AnthropicAgent agent = agentFactory.CreateAgent(new AnthropicAgentOptions

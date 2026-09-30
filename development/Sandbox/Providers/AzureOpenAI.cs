@@ -26,7 +26,15 @@ public static class AzureOpenAI
             Endpoint = secrets.AzureOpenAiEndpoint,
             ApiKey = secrets.AzureOpenAiKey,
         };
-        
+
+        AIAgent a = connection.GetClient().AsAIAgent(new AgentOptions
+        {
+           Model = "gpt-5.6-luna",
+        });
+
+        AgentResponse agentResponse = await a.RunAsync("Hello");
+
+
         AzureOpenAIAgentFactory factory = new AzureOpenAIAgentFactory(connection);
 
         AzureOpenAIAgent agent = factory.CreateAgent(new AgentOptions

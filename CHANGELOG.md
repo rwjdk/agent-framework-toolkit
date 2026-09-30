@@ -1,5 +1,16 @@
 # Changelog - Agent Framework Toolkit
 
+## Unlreleased
+- OpenAI/Azure OpenAI: Added `AsAIAgent` Extension method for OpenAIClient (if you do not wish to user the AgentFactory)
+- OpenAI/Azure OpenAI: Added `AsAIAgent` Extension method for ResponsesClient (if you do not wish to user the AgentFactory)
+- Microsoft Foundry: Added `AsAIAgent` Extension method for AIProjectClient (if you do not wish to user the AgentFactory)
+- Anthropic: Added `AsAIAgent` Extension method for AnthropicClient (if you do not wish to user the AgentFactory)
+- AmazonBedrock: Added `AsAIAgent` Extension method for IAmazonBedrockRuntime (if you do not wish to user the AgentFactory)
+- Google: Added `AsAIAgent` Extension method for Google.GenAI.Client (if you do not wish to user the AgentFactory)
+- Mistral: Added `AsAIAgent` Extension method for MistralClient (if you do not wish to user the AgentFactory)
+
+---
+
 ## Version 1.23.1 (30th of September 2026)
 - Added GPT-6.1 Sol and Claude Sonnet 5.5 model constants for their native providers and OpenRouter.
 - OpenAI: Added UltraFast Service Tier

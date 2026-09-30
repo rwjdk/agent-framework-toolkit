@@ -81,7 +81,7 @@ public class MistralAgentFactory
         return new MistralAgent(innerAgent);
     }
 
-    private static ChatClientAgentOptions CreateChatClientAgentOptions(MistralAgentOptions options)
+    internal static ChatClientAgentOptions CreateChatClientAgentOptions(MistralAgentOptions options)
     {
         ChatOptions chatOptions = new()
         {

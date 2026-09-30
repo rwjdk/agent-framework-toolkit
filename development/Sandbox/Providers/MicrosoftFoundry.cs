@@ -30,6 +30,16 @@ public static class MicrosoftFoundry
         Secrets.Secrets secrets = SecretsManager.GetSecrets();
         string endpoint = secrets.MicrosoftFoundryEndpoint;
         MicrosoftFoundryConnection connection = new(endpoint, new AzureCliCredential());
+
+        MicrosoftFoundryAgent a = connection.GetClient().AsAIAgent(new AgentOptions
+        {
+            Model = "gpt-5.6-luna"
+        });
+
+        AgentResponse runAsync = await a.RunAsync("Hello");
+
+
+
         MicrosoftFoundryAgentFactory factory = new(connection);
         /*
         MicrosoftFoundryAgent agent = factory.HostedAgentFactory.CreateAgent(new HostedAgentCreationOptions

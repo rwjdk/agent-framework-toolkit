@@ -86,7 +86,7 @@ public class AmazonBedrockAgentFactory
         return new AmazonBedrockAgent(innerAgent);
     }
 
-    private static ChatClientAgentOptions CreateChatClientAgentOptions(AmazonBedrockAgentOptions options)
+    internal static ChatClientAgentOptions CreateChatClientAgentOptions(AmazonBedrockAgentOptions options)
     {
         ChatOptions chatOptions = new()
         {
