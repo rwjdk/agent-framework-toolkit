@@ -1,13 +1,12 @@
 # Changelog - Agent Framework Toolkit
 
-## Unlreleased
-- OpenAI/Azure OpenAI: Added `AsAIAgent` Extension method for OpenAIClient (if you do not wish to user the AgentFactory)
-- OpenAI/Azure OpenAI: Added `AsAIAgent` Extension method for ResponsesClient (if you do not wish to user the AgentFactory)
-- Microsoft Foundry: Added `AsAIAgent` Extension method for AIProjectClient (if you do not wish to user the AgentFactory)
-- Anthropic: Added `AsAIAgent` Extension method for AnthropicClient (if you do not wish to user the AgentFactory)
-- AmazonBedrock: Added `AsAIAgent` Extension method for IAmazonBedrockRuntime (if you do not wish to user the AgentFactory)
-- Google: Added `AsAIAgent` Extension method for Google.GenAI.Client (if you do not wish to user the AgentFactory)
-- Mistral: Added `AsAIAgent` Extension method for MistralClient (if you do not wish to user the AgentFactory)
+## Version 1.23.2 (1st of October 2026)
+- OpenAI/Azure OpenAI: Added `AsAIAgent` extension methods for `OpenAIClient` and `ResponsesClient` as alternatives to `AgentFactory`.
+- Microsoft Foundry: Added an `AsAIAgent` extension method for `AIProjectClient` as an alternative to `AgentFactory`.
+- Anthropic: Added an `AsAIAgent` extension method for `AnthropicClient` as an alternative to `AgentFactory`.
+- AmazonBedrock: Added an `AsAIAgent` extension method for `IAmazonBedrockRuntime` as an alternative to `AgentFactory`.
+- Google: Added an `AsAIAgent` extension method for `Google.GenAI.Client` as an alternative to `AgentFactory`.
+- Mistral: Added an `AsAIAgent` extension method for `MistralClient` as an alternative to `AgentFactory`.
 
 ---
 

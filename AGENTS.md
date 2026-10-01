@@ -78,6 +78,7 @@ Use the `update-model-names` skill in `.agents/skills/update-model-names/SKILL.m
 PI changes intentional and minimal; avoid broad refactors unless the user asks for them.
 
 # Dependency and project file rules
+- Reserve minor version increments for underlying Microsoft Agent Framework releases. For toolkit-only releases, increment the patch version (for example, `1.23.1` to `1.23.2`) and use that version in `nuget-package.props` and `CHANGELOG.md`.
 - Keep package versions centralized in `Directory.Packages.props`.
 - Add package references in project files without inline version numbers.
 - If a new project or package is added, include it in `AgentFrameworkToolkit.slnx`.
