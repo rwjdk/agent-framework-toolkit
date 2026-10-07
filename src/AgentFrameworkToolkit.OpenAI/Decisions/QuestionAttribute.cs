@@ -37,7 +37,11 @@ public sealed class ScoreQuestionAttribute<T>(string question) : QuestionAttribu
     internal override Type EnumType => typeof(T);
 }
 
-/// <summary>Defines a predicate question returning a probability or thresholded Boolean.</summary>
+/// <summary>
+/// Defines a predicate question returning a probability or thresholded Boolean.
+/// Thresholds apply to Boolean results and Probability.IsTrue. Double and decimal properties,
+/// including their nullable forms, return the raw probability and ignore the threshold.
+/// </summary>
 [PublicAPI]
 public sealed class ProbabilityQuestionAttribute : QuestionAttribute
 {
@@ -50,7 +54,10 @@ public sealed class ProbabilityQuestionAttribute : QuestionAttribute
         Threshold = threshold;
     }
 
-    /// <summary>Gets the inclusive threshold for Boolean results and Probability.IsTrue.</summary>
+    /// <summary>
+    /// Gets the inclusive threshold for Boolean results and Probability.IsTrue.
+    /// Double and decimal properties, including their nullable forms, return the raw probability and ignore this threshold.
+    /// </summary>
     public double Threshold { get; }
 
     internal override string Kind => "predicate";

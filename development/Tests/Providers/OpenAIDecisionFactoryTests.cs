@@ -95,6 +95,48 @@ public class OpenAIDecisionFactoryTests
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => new Probability(value));
         Assert.Throws<ArgumentOutOfRangeException>(() => new Probability(value, 0.7));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new ProbabilityQuestionAttribute("Damaged?", value));
+    }
+
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(0.69, false)]
+    [InlineData(0.7, true)]
+    [InlineData(0.71, true)]
+    [InlineData(1, true)]
+    public async Task CreateDecision_CustomThresholdAppliesOnlyToBooleanAndProbabilityResultsAsync(double probability, bool expected)
+    {
+        JsonObject response = CreateResponse();
+        JsonArray answers = [];
+        string[] names = ["Boolean", "NullableBoolean", "Probability", "NullableProbability", "Double", "NullableDouble", "Decimal", "NullableDecimal"];
+        foreach (string name in names)
+        {
+            answers.Add(new JsonObject { ["name"] = name, ["type"] = "predicate", ["probability"] = probability });
+        }
+        response["answers"] = answers;
+        using RecordingHandler handler = new() { ResponseBody = response.ToJsonString() };
+        using HttpClient client = new(handler);
+        OpenAIDecisionFactory factory = new(CreateConnection(client), OpenAIChatModels.Gpt6Luna);
+        OpenAIDecisionResponse<ProbabilityTypesResult> result = await factory.CreateDecisionAsync<ProbabilityTypesResult>(new DecisionRequest { Input = "Evidence" }, TestContext.Current.CancellationToken);
+
+        Assert.Equal(expected, result.Result.Boolean);
+        Assert.Equal(expected, result.Result.NullableBoolean);
+        Assert.Equal(probability, result.Result.Probability.Value);
+        Assert.Equal(probability, result.Result.NullableProbability!.Value);
+        Assert.Equal(0.7, result.Result.Probability.Threshold);
+        Assert.Equal(0.7, result.Result.NullableProbability.Threshold);
+        Assert.Equal(expected, result.Result.Probability.IsTrue);
+        Assert.Equal(expected, result.Result.NullableProbability.IsTrue);
+        Assert.Equal(probability, result.Result.Double);
+        Assert.Equal(probability, result.Result.NullableDouble);
+        Assert.Equal((decimal)probability, result.Result.Decimal);
+        Assert.Equal((decimal)probability, result.Result.NullableDecimal);
+        using JsonDocument request = JsonDocument.Parse(handler.RequestBody!);
+        foreach (JsonElement question in request.RootElement.GetProperty("questions").EnumerateArray())
+        {
+            Assert.False(question.TryGetProperty("threshold", out _));
+        }
+        Assert.Equal(1, handler.RequestCount);
     }
 
     [Fact]
@@ -664,6 +706,18 @@ public class OpenAIDecisionFactoryTests
     {
         [ProbabilityQuestion("Damaged?", 0.8)]
         public Probability? Damaged { get; set; }
+    }
+
+    public class ProbabilityTypesResult
+    {
+        [ProbabilityQuestion("Damaged?", 0.7)] public bool Boolean { get; set; }
+        [ProbabilityQuestion("Damaged?", 0.7)] public bool? NullableBoolean { get; set; }
+        [ProbabilityQuestion("Damaged?", 0.7)] public Probability Probability { get; set; } = null!;
+        [ProbabilityQuestion("Damaged?", 0.7)] public Probability? NullableProbability { get; set; }
+        [ProbabilityQuestion("Damaged?", 0.7)] public double Double { get; set; }
+        [ProbabilityQuestion("Damaged?", 0.7)] public double? NullableDouble { get; set; }
+        [ProbabilityQuestion("Damaged?", 0.7)] public decimal Decimal { get; set; }
+        [ProbabilityQuestion("Damaged?", 0.7)] public decimal? NullableDecimal { get; set; }
     }
 
     public class MustNotConstructResult : DetailedResult

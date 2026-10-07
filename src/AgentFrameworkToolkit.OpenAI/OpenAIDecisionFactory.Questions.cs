@@ -43,10 +43,6 @@ public partial class OpenAIDecisionFactory
             {
                 throw new InvalidOperationException($"Property '{property.Name}' has an unsupported type for {attribute.Kind}.");
             }
-            if (attribute is ProbabilityQuestionAttribute predicate && predicate.Threshold != 0.5 && valueType != typeof(bool) && valueType != typeof(Probability))
-            {
-                throw new InvalidOperationException($"A custom threshold on '{property.Name}' requires a Boolean or Probability property.");
-            }
             definitions.Add(new(property.Name, attribute, valueType, enumNames, property));
         }
         if (definitions.Count == 0)

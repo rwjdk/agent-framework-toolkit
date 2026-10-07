@@ -1,5 +1,10 @@
 # Changelog - Agent Framework Toolkit
 
+## Unreleased
+- OpenAI: Accept custom probability question thresholds on `double`, `decimal`, and their nullable forms. Numeric results return the raw probability and ignore the threshold; Boolean results and `Probability.IsTrue` continue to apply it.
+
+---
+
 ## Version 1.23.3 (7th of October 2026)
 - OpenAI: Added Decisions API support via `OpenAIDecisionFactory` and `agent.Decisions`. [Note: Decisions API is in beta so breaking changes might be needed]
 
