@@ -29,6 +29,6 @@ public static class OpenAIClientExtensions
             options.ToolCallingMiddleware,
             options.OpenTelemetryMiddleware,
             options.LoggingMiddleware,
-            options.Services));
+            options.Services), client, OpenAIDecisionFactory.ResolveAgentDecisionModel(options.Model, options.DecisionApiModel));
     }
 }

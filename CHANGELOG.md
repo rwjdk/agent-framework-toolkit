@@ -1,5 +1,10 @@
 # Changelog - Agent Framework Toolkit
 
+## Version 1.23.3 (7th of October 2026)
+- OpenAI: Added Decisions API support via `OpenAIDecisionFactory` and `agent.Decisions`. [Note: Decisions API is in beta so breaking changes might be needed]
+
+---
+
 ## Version 1.23.2 (1st of October 2026)
 - OpenAI/Azure OpenAI: Added `AsAIAgent` extension methods for `OpenAIClient` and `ResponsesClient` as alternatives to `AgentFactory`.
 - Microsoft Foundry: Added an `AsAIAgent` extension method for `AIProjectClient` as an alternative to `AgentFactory`.

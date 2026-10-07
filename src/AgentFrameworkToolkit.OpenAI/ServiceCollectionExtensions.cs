@@ -9,6 +9,26 @@ namespace AgentFrameworkToolkit.OpenAI;
 [PublicAPI]
 public static class ServiceCollectionExtensions
 {
+    /// <summary>Registers an OpenAIDecisionFactory as a singleton.</summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="connection">OpenAI connection configuration.</param>
+    /// <returns>The service collection.</returns>
+    /// <param name="model">The model used for decisions.</param>
+    public static IServiceCollection AddOpenAIDecisionFactory(this IServiceCollection services, OpenAIConnection connection, string model)
+    {
+        return services.AddSingleton(new OpenAIDecisionFactory(connection, model));
+    }
+
+    /// <summary>Registers an OpenAIDecisionFactory as a singleton.</summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="apiKey">The OpenAI API key.</param>
+    /// <returns>The service collection.</returns>
+    /// <param name="model">The model used for decisions.</param>
+    public static IServiceCollection AddOpenAIDecisionFactory(this IServiceCollection services, string apiKey, string model)
+    {
+        return services.AddSingleton(new OpenAIDecisionFactory(apiKey, model));
+    }
+
     /// <summary>
     /// Register an OpenAIAgentFactory as a Singleton
     /// </summary>

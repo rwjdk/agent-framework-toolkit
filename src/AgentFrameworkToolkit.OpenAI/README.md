@@ -152,3 +152,166 @@ EmbeddingBatchRun embeddingRun = await batchRunner.RunEmbeddingBatchAsync(
 ```
 
 > Note: Batch runner APIs are marked experimental with `AFT999`.
+
+## Decisions API
+
+`OpenAIDecisionFactory` evaluates shared text and inline images using the
+[OpenAI Decisions API](https://developers.openai.com/api/docs/guides/decisions).
+Use single-question methods or define several questions on a result class.
+
+For a single question, use the convenience methods without defining a result class:
+
+```csharp
+Department department = await factory.ChooseAsync<Department>(new ChoiceRequest
+{
+    Input = text,
+    Question = "Which department should handle this?"
+});
+bool damaged = await factory.IsTrueAsync(new ProbabilityRequest
+{
+    Input = text,
+    Question = "Is the product damaged?",
+    Threshold = 0.7
+});
+Probability probability = await factory.ProbabilityAsync(new ProbabilityImageRequest
+{
+    Images = [image],
+    Input = "Customer photo", // Optional for image evidence.
+    Question = "Is the product damaged?",
+    ImageDetail = ImageDetail.High
+});
+Score<Severity> severity = await factory.ScoreAsync<Severity>(new ScoreRequest
+{
+    Input = text,
+    Question = "How severe is the damage?"
+});
+```
+
+`ChoiceRequest`, `ProbabilityRequest`, and `ScoreRequest` require named `Input` and
+`Question` properties. `ChoiceImageRequest`, `ProbabilityImageRequest`, and `ScoreImageRequest` require
+`Images` and `Question`, with optional text `Input`. All requests contain
+`SafetyIdentifier` directly. Image requests also
+expose `ImageDetail`. Probability request `Threshold` defaults to
+0.5 and is used by `IsTrueAsync` and the `Probability.IsTrue` returned by
+`ProbabilityAsync`. Read `.Value` for the numeric probability. All methods accept
+a cancellation token and throw on refused or invalid answers.
+`ScoreAsync<TEnum>` returns the weighted score, confidence, level probabilities,
+and descriptions; enum numeric order defines zero-based levels. Use
+`CreateDecisionAsync<T>` for multiple questions or token usage.
+
+For a typed result, define question properties and call `CreateDecisionAsync<T>`:
+
+```csharp
+using System.ComponentModel;
+using AgentFrameworkToolkit.OpenAI;
+using AgentFrameworkToolkit.OpenAI.Decisions;
+using Microsoft.Extensions.AI;
+
+public class SupportDecision
+{
+    [ProbabilityQuestion("Does the customer report a broken product?", threshold: 0.7)]
+    public bool IsBroken { get; set; }
+
+    [ChoiceQuestion<Department>("Which department should handle this?")]
+    public Choice<Department>? Department { get; set; }
+
+    [ScoreQuestion<Severity>("How severe is the reported impact?")]
+    public Score<Severity>? Severity { get; set; }
+}
+
+public enum Department
+{
+    [Description("Invoices, payments, and subscriptions")]
+    Billing,
+    [Description("Using or troubleshooting the product")]
+    Technical,
+    Other
+}
+
+public enum Severity
+{
+    Cosmetic,
+    Degraded,
+    Blocking
+}
+
+// In your async method:
+OpenAIDecisionFactory factory = new(apiKey, OpenAIChatModels.Gpt6Luna);
+OpenAIDecisionResponse<SupportDecision> response =
+    await factory.CreateDecisionAsync<SupportDecision>(new DecisionRequest
+    {
+        Input = "The screen arrived broken."
+    });
+SupportDecision result = response.Result;
+
+// Include inline images; external image URLs and file IDs are unsupported.
+DataContent image = new(await File.ReadAllBytesAsync("product.png"), "image/png");
+OpenAIDecisionResponse<SupportDecision> imageResponse =
+    await factory.CreateDecisionAsync<SupportDecision>(
+        new DecisionImageRequest { Images = [image], ImageDetail = ImageDetail.High });
+```
+
+Predicate questions accept `bool`, `double`, `decimal`, their nullable forms,
+or `Probability`. `Probability.Value` contains the numeric probability;
+`IsTrue` checks the configured `Threshold` (from the request or predicate attribute,
+defaulting to 0.5), and `IsAtLeast(threshold)` checks
+a custom threshold. Boolean thresholds are inclusive and default to 0.5.
+Choice properties accept the attribute's enum, its nullable form, or
+`Choice<TEnum>`. Score properties accept `double`, `decimal`, their nullable
+forms, or `Score<TEnum>`. Detailed choice and score results include confidence
+and a probability for every enum member. Score results also include
+`LevelDescriptions` derived from enum descriptions. Read the selected choice or numeric score from
+the detailed answer's `Value` property.
+
+Enums must have at least two distinct members without aliases. Score levels follow
+ascending enum numeric values and are mapped to indices 0, 1, and so on; the score
+is a probability-weighted level index, not an underlying enum value.
+
+The decision model is required when constructing `OpenAIDecisionFactory` and has
+no default. Set `SafetyIdentifier` directly on each request. The factory accepts `OpenAIConnection`
+for custom endpoints, timeouts, and SDK transport configuration. Register it with
+`services.AddOpenAIDecisionFactory(apiKey, decisionModel)` or the connection overload.
+
+Agents created by `OpenAIAgentFactory` expose `agent.Decisions`, sharing the agent's
+existing SDK client and HTTP transport:
+
+```csharp
+OpenAIAgent agent = new OpenAIAgentFactory(apiKey).CreateAgent(new AgentOptions
+{
+    Model = agentModel,
+    DecisionApiModel = OpenAIChatModels.Gpt6Luna
+});
+bool damaged = await agent.Decisions.IsTrueAsync(new ProbabilityRequest
+{
+    Input = "The screen arrived shattered.",
+    Question = "Is the product damaged?"
+});
+```
+
+Decision requests supply their own evidence; agent conversation history and
+instructions are not automatically included. The decision model is selected once through `AgentOptions.DecisionApiModel`.
+When it is omitted, the agent model is reused only when known to support Decisions
+(currently exactly `OpenAIChatModels.Gpt6Luna`). Other models require an explicit
+`DecisionApiModel`; otherwise accessing `agent.Decisions` throws a configuration
+error. An explicit decision model always overrides the fallback.
+Standalone `OpenAIDecisionFactory` instances retain one SDK client, or can accept
+an existing `OpenAIClient`. Set `RawHttpCallDetails` on any decision request to
+inspect that call's URL and request/response bodies. Attached decisions also inherit
+the agent's client-level debugging and transport. Requests reuse the retained client,
+including when a request-level debugging callback is set.
+An `OpenAIAgent` manually wrapped without an SDK client cannot expose Decisions;
+use the constructor accepting the SDK client and decision model instead.
+
+Every attributed property must have a public setter. A refused question throws
+`DecisionRefusalException`, exposing the refused `QuestionName`; missing, mismatched,
+or invalid answers fail evaluation. Detailed probability distributions and score
+descriptions are immutable snapshots. `Probability` validates its value is finite
+and between zero and one, including when constructed manually.
+No partial result is returned, including when properties are nullable.
+Responses include the model and input, output, and total token counts.
+At most 128 inline `DataContent` images are allowed per request. Each must contain
+nonempty image bytes and an image MIME type. The factory handles Base64 encoding. Set the image request’s `ImageDetail`
+to `ImageDetail.Auto` (default), `Low`, `High`, or `Original` for all images in the request.
+
+Text input is optional and can be supplied on an image request:
+`factory.CreateDecisionAsync<SupportDecision>(new DecisionImageRequest { Images = [image], Input = "The customer reports screen damage." })`.

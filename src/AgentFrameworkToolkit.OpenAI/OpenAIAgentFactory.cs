@@ -76,7 +76,7 @@ public class OpenAIAgentFactory
             options.ToolCallingMiddleware,
             options.OpenTelemetryMiddleware,
             options.LoggingMiddleware,
-            options.Services));
+            options.Services), client, OpenAIDecisionFactory.ResolveAgentDecisionModel(options.Model, options.DecisionApiModel));
     }
 
     internal static ChatClientAgent GetChatClientAgent(AgentOptions options, OpenAIClient client, string model, ClientType defaultClientType)

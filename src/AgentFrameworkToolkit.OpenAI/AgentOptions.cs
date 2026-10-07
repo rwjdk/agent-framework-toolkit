@@ -20,6 +20,9 @@ public class AgentOptions
     /// </summary>
     public required string Model { get; set; }
 
+    /// <summary>The optional model for Decisions API calls. When omitted, the agent model is reused only if it is known to support Decisions (currently gpt-6-luna).</summary>
+    public string? DecisionApiModel { get; set; }
+
     /// <summary>
     /// Id of the Agent
     /// </summary>
