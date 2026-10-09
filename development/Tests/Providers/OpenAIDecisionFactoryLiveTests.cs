@@ -1,6 +1,6 @@
 using Microsoft.Extensions.AI;
 using AgentFrameworkToolkit.OpenAI;
-using AgentFrameworkToolkit.OpenAI.Decisions;
+using AgentFrameworkToolkit.Decisions;
 using Secrets;
 
 namespace AgentFrameworkToolkit.Tests.Providers;
@@ -38,7 +38,7 @@ public class OpenAIDecisionFactoryLiveTests
         // A small PNG keeps the fixture self-contained; this checks API compatibility, not vision quality.
         DataContent image = new(Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAAJklEQVR4nO3NMQ0AAAwDoPo33arYsQQMkB6LQCAQCAQCgUAg+BIMi1X0pjxKe0gAAAAASUVORK5CYII="), "image/png");
 
-        OpenAIDecisionResponse<ImageDecision> response = await factory.CreateDecisionAsync<ImageDecision>(
+        DecisionResponse<ImageDecision> response = await factory.CreateDecisionAsync<ImageDecision>(
             new DecisionImageRequest { Images = [image], ImageDetail = ImageDetail.Low },
             cancellationToken: TestContext.Current.CancellationToken);
 
@@ -58,7 +58,7 @@ public class OpenAIDecisionFactoryLiveTests
             NetworkTimeout = TimeSpan.FromSeconds(60)
         }, OpenAIChatModels.Gpt6Luna);
 
-        OpenAIDecisionResponse<SupportDecision> response = await factory.CreateDecisionAsync<SupportDecision>(
+        DecisionResponse<SupportDecision> response = await factory.CreateDecisionAsync<SupportDecision>(
             new DecisionRequest { Input = "The product arrived with a completely shattered screen and cannot be used." },
             cancellationToken: TestContext.Current.CancellationToken);
 

@@ -1,4 +1,5 @@
 using JetBrains.Annotations;
+using AgentFrameworkToolkit.Decisions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AgentFrameworkToolkit.OpenAI;
@@ -16,7 +17,8 @@ public static class ServiceCollectionExtensions
     /// <param name="model">The model used for decisions.</param>
     public static IServiceCollection AddOpenAIDecisionFactory(this IServiceCollection services, OpenAIConnection connection, string model)
     {
-        return services.AddSingleton(new OpenAIDecisionFactory(connection, model));
+        services.AddSingleton(new OpenAIDecisionFactory(connection, model));
+        return services.AddSingleton<IDecisionFactory>(provider => provider.GetRequiredService<OpenAIDecisionFactory>());
     }
 
     /// <summary>Registers an OpenAIDecisionFactory as a singleton.</summary>
@@ -26,7 +28,7 @@ public static class ServiceCollectionExtensions
     /// <param name="model">The model used for decisions.</param>
     public static IServiceCollection AddOpenAIDecisionFactory(this IServiceCollection services, string apiKey, string model)
     {
-        return services.AddSingleton(new OpenAIDecisionFactory(apiKey, model));
+        return services.AddOpenAIDecisionFactory(new OpenAIConnection(apiKey), model);
     }
 
     /// <summary>

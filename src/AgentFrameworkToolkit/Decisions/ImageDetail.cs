@@ -1,6 +1,6 @@
 using JetBrains.Annotations;
 
-namespace AgentFrameworkToolkit.OpenAI.Decisions;
+namespace AgentFrameworkToolkit.Decisions;
 
 /// <summary>Specifies the image detail level used by the Decisions API.</summary>
 [PublicAPI]

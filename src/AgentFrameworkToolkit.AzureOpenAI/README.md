@@ -165,3 +165,69 @@ ChatBatchRun run = await batchRunner.RunChatBatchAsync(
 ```
 
 > Note: Batch runner APIs are marked experimental with `AFT999`. In Azure OpenAI, `Model` is your deployment name.
+
+## Microsoft decision models
+
+`AzureOpenAIDecisionFactory` implements the shared `IDecisionFactory` contract used by
+OpenAI and Jev. Supply a Foundry resource endpoint, authentication, and the deployment
+name of your Microsoft decision model. The deployment name is required and has no default.
+
+```csharp
+using AgentFrameworkToolkit.AzureOpenAI;
+using AgentFrameworkToolkit.Decisions;
+
+IDecisionFactory factory = new AzureOpenAIDecisionFactory(
+    "https://YOUR_RESOURCE.services.ai.azure.com", apiKey, "Decision-1");
+
+bool urgent = await factory.IsTrueAsync(new ProbabilityRequest
+{
+    Input = "My account payment has failed twice today. I need help today.",
+    Question = "Does the customer need urgent help?",
+    Threshold = 0.7
+});
+```
+
+Use `ChooseAsync<TEnum>`, `ProbabilityAsync`, and `ScoreAsync<TEnum>` for individual
+questions, or `CreateDecisionAsync<T>` with the shared question attributes for multiple
+questions and token usage. The same request and result types work across decision providers.
+Choice and score results retain the API's confidence and full probability distribution.
+Score results include the API's level descriptions. Refused, missing, or invalid answers
+throw rather than returning a partial result.
+
+The factory calls `/providers/microsoft/v1/systemone` with `model` set to the deployment
+name, `state` set to the request's `Input`, and keyed `noul`, `choice`, or `score` questions.
+It uses `AzureOpenAIConnection` for API-key or RBAC authentication, endpoint correction,
+network timeout, and `AdditionalOpenAIClientOptions` transport configuration. The connection
+settings are retained at construction; later connection changes do not reconfigure the factory.
+
+```csharp
+using Azure.Identity;
+
+AzureOpenAIConnection connection = new(
+    "https://YOUR_RESOURCE.services.ai.azure.com", new AzureCliCredential())
+{
+    NetworkTimeout = TimeSpan.FromSeconds(60)
+};
+AzureOpenAIDecisionFactory factory = new(connection, "Decision-1");
+
+services.AddAzureOpenAIDecisionFactory(connection, "Decision-1");
+// Also available: endpoint + API key, or endpoint + TokenCredential.
+```
+
+DI registers the concrete factory and `IDecisionFactory` as the same singleton.
+When registering multiple decision providers, resolve their concrete factories;
+the last registration supplies `IDecisionFactory`. All operations accept cancellation
+tokens. Set `RawHttpCallDetails` on a request to inspect request and response bodies.
+Total token usage is calculated from input and output counts.
+
+Microsoft-Decision-1 is text-only. Image requests and `SafetyIdentifier` currently
+throw `NotSupportedException`; the common contract remains available to every provider.
+
+### Decision factory tests
+
+Run the unit tests with
+`dotnet test development/Tests/Tests.csproj --configuration Release --filter FullyQualifiedName~AzureOpenAIDecisionFactoryTests`.
+For live tests, configure `AzureDecisionEndpoint`, `AzureDecisionDeployment`, and
+`AzureDecisionApiKey` in the environment and sign in with Azure CLI for RBAC access.
+Run with `--filter FullyQualifiedName~AzureOpenAIDecisionFactoryLiveTests` to check
+both authentication methods against the deployment. Live tests make billable API calls.

@@ -1,16 +1,17 @@
 using System.ClientModel;
 using System.ClientModel.Primitives;
 using System.Text.Json;
-using AgentFrameworkToolkit.OpenAI.Decisions;
+using AgentFrameworkToolkit.Decisions;
 using JetBrains.Annotations;
 using OpenAI;
 using Microsoft.Extensions.AI;
+using static AgentFrameworkToolkit.Decisions.DecisionQuestions;
 
 namespace AgentFrameworkToolkit.OpenAI;
 
 /// <summary>Evaluates attribute-defined questions with the OpenAI Decisions API.</summary>
 [PublicAPI]
-public partial class OpenAIDecisionFactory
+public partial class OpenAIDecisionFactory : DecisionFactory
 {
     private readonly OpenAIClient _client;
     private readonly string _model;
@@ -60,28 +61,6 @@ public partial class OpenAIDecisionFactory
         _client = client;
     }
 
-    /// <summary>Creates a complete typed decision from text. Refused or invalid answers throw.</summary>
-    /// <typeparam name="T">An attributed result class with a public parameterless constructor.</typeparam>
-    /// <param name="request">Text evidence and request configuration.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>A complete typed result and token usage.</returns>
-    public Task<OpenAIDecisionResponse<T>> CreateDecisionAsync<T>(DecisionRequest request, CancellationToken cancellationToken = default)
-        where T : class, new()
-    {
-        return EvaluateCoreAsync<T>(BuildRequestInput(request), request, cancellationToken);
-    }
-
-    /// <summary>Creates a complete typed decision from images. Refused or invalid answers throw.</summary>
-    /// <typeparam name="T">An attributed result class with a public parameterless constructor.</typeparam>
-    /// <param name="request">Inline images, optional text input, and request configuration.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>A complete typed result and token usage.</returns>
-    public Task<OpenAIDecisionResponse<T>> CreateDecisionAsync<T>(DecisionImageRequest request, CancellationToken cancellationToken = default)
-        where T : class, new()
-    {
-        return EvaluateCoreAsync<T>(BuildRequestInput(request), request, cancellationToken);
-    }
-
     private static object BuildImageInput(IEnumerable<DataContent> images, string? input, ImageDetail detail)
     {
         ArgumentNullException.ThrowIfNull(images);
@@ -120,18 +99,10 @@ public partial class OpenAIDecisionFactory
         return new[] { new { role = "user", content } };
     }
 
-    private async Task<OpenAIDecisionResponse<T>> EvaluateCoreAsync<T>(object input, DecisionRequestBase options, CancellationToken cancellationToken)
-        where T : class, new()
+    internal override async Task<DecisionEvaluation> EvaluateAsync(DecisionRequestBase request, List<QuestionDefinition> definitions, CancellationToken cancellationToken)
     {
-        List<QuestionDefinition> definitions = BuildDefinitions<T>();
-        DecisionPayload response = await SendDecisionAsync(input, options, definitions, cancellationToken).ConfigureAwait(false);
-        object[] values = ConvertAnswers(definitions, response.Answers);
-        T result = new();
-        for (int i = 0; i < definitions.Count; i++)
-        {
-            definitions[i].Property!.SetValue(result, values[i]);
-        }
-        return new(result, response.Model, response.InputTokens, response.OutputTokens, response.TotalTokens);
+        DecisionPayload response = await SendDecisionAsync(BuildRequestInput(request), request, definitions, cancellationToken).ConfigureAwait(false);
+        return new(ConvertAnswers(definitions, response.Answers), response.Model, response.InputTokens, response.OutputTokens, response.TotalTokens);
     }
 
     private sealed record DecisionPayload(JsonElement Answers, string Model, long InputTokens, long OutputTokens, long TotalTokens);

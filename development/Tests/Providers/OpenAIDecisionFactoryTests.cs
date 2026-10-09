@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using AgentFrameworkToolkit.OpenAI;
-using AgentFrameworkToolkit.OpenAI.Decisions;
+using AgentFrameworkToolkit.Decisions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.AI;
 
@@ -117,7 +117,7 @@ public class OpenAIDecisionFactoryTests
         using RecordingHandler handler = new() { ResponseBody = response.ToJsonString() };
         using HttpClient client = new(handler);
         OpenAIDecisionFactory factory = new(CreateConnection(client), OpenAIChatModels.Gpt6Luna);
-        OpenAIDecisionResponse<ProbabilityTypesResult> result = await factory.CreateDecisionAsync<ProbabilityTypesResult>(new DecisionRequest { Input = "Evidence" }, TestContext.Current.CancellationToken);
+        DecisionResponse<ProbabilityTypesResult> result = await factory.CreateDecisionAsync<ProbabilityTypesResult>(new DecisionRequest { Input = "Evidence" }, TestContext.Current.CancellationToken);
 
         Assert.Equal(expected, result.Result.Boolean);
         Assert.Equal(expected, result.Result.NullableBoolean);
@@ -164,7 +164,7 @@ public class OpenAIDecisionFactoryTests
         using RecordingHandler handler = new() { ResponseBody = response.ToJsonString() };
         using HttpClient client = new(handler);
         OpenAIDecisionFactory factory = new(CreateConnection(client), OpenAIChatModels.Gpt6Luna);
-        OpenAIDecisionResponse<ThresholdResult> result = await factory.CreateDecisionAsync<ThresholdResult>(new DecisionRequest { Input = "Evidence" }, TestContext.Current.CancellationToken);
+        DecisionResponse<ThresholdResult> result = await factory.CreateDecisionAsync<ThresholdResult>(new DecisionRequest { Input = "Evidence" }, TestContext.Current.CancellationToken);
         Assert.Equal(0.8, result.Result.Damaged!.Threshold);
         Assert.False(result.Result.Damaged.IsTrue);
     }
@@ -443,7 +443,7 @@ public class OpenAIDecisionFactoryTests
         OpenAIConnection connection = CreateConnection(client);
         OpenAIDecisionFactory factory = new(connection, "custom-model");
 
-        OpenAIDecisionResponse<DetailedResult> response = await factory.CreateDecisionAsync<DetailedResult>(new DecisionRequest
+        DecisionResponse<DetailedResult> response = await factory.CreateDecisionAsync<DetailedResult>(new DecisionRequest
         {
             Input = "Evidence",
             SafetyIdentifier = "user-123"
@@ -489,12 +489,12 @@ public class OpenAIDecisionFactoryTests
         using RecordingHandler handler = new();
         using HttpClient client = new(handler);
         OpenAIDecisionFactory factory = new(CreateConnection(client), OpenAIChatModels.Gpt6Luna);
-        OpenAIDecisionResponse<SimpleResult> response = await factory.CreateDecisionAsync<SimpleResult>(new DecisionRequest { Input = "Evidence" }, cancellationToken: TestContext.Current.CancellationToken);
+        DecisionResponse<SimpleResult> response = await factory.CreateDecisionAsync<SimpleResult>(new DecisionRequest { Input = "Evidence" }, cancellationToken: TestContext.Current.CancellationToken);
         Assert.True(response.Result.Damaged);
         Assert.Equal(Level.High, response.Result.Category);
         Assert.Equal(0.7m, response.Result.Severity);
 
-        OpenAIDecisionResponse<NumericResult> numeric = await factory.CreateDecisionAsync<NumericResult>(new DecisionRequest { Input = "Evidence" }, cancellationToken: TestContext.Current.CancellationToken);
+        DecisionResponse<NumericResult> numeric = await factory.CreateDecisionAsync<NumericResult>(new DecisionRequest { Input = "Evidence" }, cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(0.7m, numeric.Result.Damaged);
         Assert.Equal(Level.High, numeric.Result.Category);
         Assert.Equal(0.7, numeric.Result.Severity);

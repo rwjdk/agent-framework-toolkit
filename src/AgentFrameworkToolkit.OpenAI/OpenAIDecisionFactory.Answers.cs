@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Text.Json;
-using AgentFrameworkToolkit.OpenAI.Decisions;
+using AgentFrameworkToolkit.Decisions;
+using static AgentFrameworkToolkit.Decisions.DecisionQuestions;
 
 namespace AgentFrameworkToolkit.OpenAI;
 

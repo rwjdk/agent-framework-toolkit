@@ -7,6 +7,7 @@
     <Project Path="src/AgentFrameworkToolkit.Cohere/AgentFrameworkToolkit.Cohere.csproj" />
     <Project Path="src/AgentFrameworkToolkit.Google/AgentFrameworkToolkit.Google.csproj" />
     <Project Path="src/AgentFrameworkToolkit.Groq/AgentFrameworkToolkit.Groq.csproj" />
+    <Project Path="src/AgentFrameworkToolkit.Jev/AgentFrameworkToolkit.Jev.csproj" />
     <Project Path="src/AgentFrameworkToolkit.MicrosoftFoundry/AgentFrameworkToolkit.MicrosoftFoundry.csproj" Id="edc4679c-4cdd-46b6-99a8-695ba4b78486" />
     <Project Path="src/AgentFrameworkToolkit.Mistral/AgentFrameworkToolkit.Mistral.csproj" />
     <Project Path="src/AgentFrameworkToolkit.OpenAI/AgentFrameworkToolkit.OpenAI.csproj" />

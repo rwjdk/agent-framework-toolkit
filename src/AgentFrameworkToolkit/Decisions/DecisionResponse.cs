@@ -1,7 +1,7 @@
 using JetBrains.Annotations;
 using System.Collections.Frozen;
 
-namespace AgentFrameworkToolkit.OpenAI.Decisions;
+namespace AgentFrameworkToolkit.Decisions;
 
 /// <summary>Contains a complete typed decision and token usage.</summary>
 /// <typeparam name="T">The result object type.</typeparam>
@@ -11,7 +11,7 @@ namespace AgentFrameworkToolkit.OpenAI.Decisions;
 /// <param name="OutputTokenCount">Output tokens consumed.</param>
 /// <param name="TotalTokenCount">Total tokens consumed.</param>
 [PublicAPI]
-public sealed record OpenAIDecisionResponse<T>(T Result, string Model, long InputTokenCount, long OutputTokenCount, long TotalTokenCount);
+public sealed record DecisionResponse<T>(T Result, string Model, long InputTokenCount, long OutputTokenCount, long TotalTokenCount);
 
 /// <summary>Contains a choice and its probability distribution.</summary>
 /// <typeparam name="T">The choices enum.</typeparam>

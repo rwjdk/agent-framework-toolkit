@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Strongly typed decisions with the Jev API using shared AgentFrameworkToolkit decision contracts.</Description>
+  </PropertyGroup>
+  <Import Project="..\..\nuget-package.props" />
+  <ItemGroup>
+    <ProjectReference Include="..\AgentFrameworkToolkit\AgentFrameworkToolkit.csproj" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+</Project>

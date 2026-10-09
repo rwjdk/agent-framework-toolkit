@@ -1,6 +1,6 @@
 using JetBrains.Annotations;
 
-namespace AgentFrameworkToolkit.OpenAI.Decisions;
+namespace AgentFrameworkToolkit.Decisions;
 
 /// <summary>Defines a question on a decision result property.</summary>
 /// <param name="question">The instructions for evaluating the question.</param>

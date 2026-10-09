@@ -1,9 +1,34 @@
-using AgentFrameworkToolkit.OpenAI.Decisions;
+using JetBrains.Annotations;
+using static AgentFrameworkToolkit.Decisions.DecisionQuestions;
 
-namespace AgentFrameworkToolkit.OpenAI;
+namespace AgentFrameworkToolkit.Decisions;
 
-public partial class OpenAIDecisionFactory
+/// <summary>Provides shared typed and single-question decision operations for provider implementations.</summary>
+[PublicAPI]
+public abstract class DecisionFactory : IDecisionFactory
 {
+    /// <summary>Creates a complete typed decision from text. Refused or invalid answers throw.</summary>
+    /// <typeparam name="T">An attributed result class with a public parameterless constructor.</typeparam>
+    /// <param name="request">Text evidence and request configuration.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A complete typed result and token usage.</returns>
+    public Task<DecisionResponse<T>> CreateDecisionAsync<T>(DecisionRequest request, CancellationToken cancellationToken = default)
+        where T : class, new()
+    {
+        return EvaluateCoreAsync<T>(request, cancellationToken);
+    }
+
+    /// <summary>Creates a complete typed decision from images. Refused or invalid answers throw.</summary>
+    /// <typeparam name="T">An attributed result class with a public parameterless constructor.</typeparam>
+    /// <param name="request">Inline images, optional text input, and request configuration.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A complete typed result and token usage.</returns>
+    public Task<DecisionResponse<T>> CreateDecisionAsync<T>(DecisionImageRequest request, CancellationToken cancellationToken = default)
+        where T : class, new()
+    {
+        return EvaluateCoreAsync<T>(request, cancellationToken);
+    }
+
     /// <summary>Selects an enum choice from text and/or images. Refused or invalid answers throw.</summary>
     /// <typeparam name="TEnum">The enum defining choices and optional descriptions.</typeparam>
     /// <param name="request">The evidence, question, and request configuration.</param>
@@ -12,8 +37,8 @@ public partial class OpenAIDecisionFactory
     public Task<TEnum> ChooseAsync<TEnum>(ChoiceRequest request, CancellationToken cancellationToken = default)
         where TEnum : struct, Enum
     {
-        object input = BuildRequestInput(request);
-        return EvaluateSingleAsync<TEnum>(input, new ChoiceQuestionAttribute<TEnum>(request.Question), request, cancellationToken);
+        ArgumentNullException.ThrowIfNull(request);
+        return EvaluateSingleAsync<TEnum>(request, new ChoiceQuestionAttribute<TEnum>(request.Question), cancellationToken);
     }
 
     /// <summary>Selects an enum choice from text and/or images. Refused or invalid answers throw.</summary>
@@ -24,8 +49,8 @@ public partial class OpenAIDecisionFactory
     public Task<TEnum> ChooseAsync<TEnum>(ChoiceImageRequest request, CancellationToken cancellationToken = default)
         where TEnum : struct, Enum
     {
-        object input = BuildRequestInput(request);
-        return EvaluateSingleAsync<TEnum>(input, new ChoiceQuestionAttribute<TEnum>(request.Question), request, cancellationToken);
+        ArgumentNullException.ThrowIfNull(request);
+        return EvaluateSingleAsync<TEnum>(request, new ChoiceQuestionAttribute<TEnum>(request.Question), cancellationToken);
     }
 
     /// <summary>Checks whether a condition's probability meets the request's inclusive threshold.</summary>
@@ -55,8 +80,7 @@ public partial class OpenAIDecisionFactory
         ArgumentNullException.ThrowIfNull(request);
         double threshold = request.Threshold;
         Probability.ValidateThreshold(threshold);
-        object input = BuildRequestInput(request);
-        return await EvaluateSingleAsync<Probability>(input, new ProbabilityQuestionAttribute(request.Question, threshold), request, cancellationToken).ConfigureAwait(false);
+        return await EvaluateSingleAsync<Probability>(request, new ProbabilityQuestionAttribute(request.Question, threshold), cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Gets a predicate probability whose IsTrue uses the request's inclusive threshold.</summary>
@@ -68,8 +92,7 @@ public partial class OpenAIDecisionFactory
         ArgumentNullException.ThrowIfNull(request);
         double threshold = request.Threshold;
         Probability.ValidateThreshold(threshold);
-        object input = BuildRequestInput(request);
-        return await EvaluateSingleAsync<Probability>(input, new ProbabilityQuestionAttribute(request.Question, threshold), request, cancellationToken).ConfigureAwait(false);
+        return await EvaluateSingleAsync<Probability>(request, new ProbabilityQuestionAttribute(request.Question, threshold), cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Evaluates an ordered score question against text evidence.</summary>
@@ -80,8 +103,8 @@ public partial class OpenAIDecisionFactory
     public Task<Score<TEnum>> ScoreAsync<TEnum>(ScoreRequest request, CancellationToken cancellationToken = default)
         where TEnum : struct, Enum
     {
-        object input = BuildRequestInput(request);
-        return EvaluateSingleAsync<Score<TEnum>>(input, new ScoreQuestionAttribute<TEnum>(request.Question), request, cancellationToken);
+        ArgumentNullException.ThrowIfNull(request);
+        return EvaluateSingleAsync<Score<TEnum>>(request, new ScoreQuestionAttribute<TEnum>(request.Question), cancellationToken);
     }
 
     /// <summary>Evaluates an ordered score question against inline images.</summary>
@@ -92,34 +115,31 @@ public partial class OpenAIDecisionFactory
     public Task<Score<TEnum>> ScoreAsync<TEnum>(ScoreImageRequest request, CancellationToken cancellationToken = default)
         where TEnum : struct, Enum
     {
-        object input = BuildRequestInput(request);
-        return EvaluateSingleAsync<Score<TEnum>>(input, new ScoreQuestionAttribute<TEnum>(request.Question), request, cancellationToken);
+        ArgumentNullException.ThrowIfNull(request);
+        return EvaluateSingleAsync<Score<TEnum>>(request, new ScoreQuestionAttribute<TEnum>(request.Question), cancellationToken);
     }
+    internal abstract Task<DecisionEvaluation> EvaluateAsync(DecisionRequestBase request, List<QuestionDefinition> definitions, CancellationToken cancellationToken);
 
-    private static object BuildRequestInput(DecisionRequestBase request)
+    private async Task<DecisionResponse<T>> EvaluateCoreAsync<T>(DecisionRequestBase request, CancellationToken cancellationToken)
+        where T : class, new()
     {
         ArgumentNullException.ThrowIfNull(request);
-        if (request is ChoiceImageRequest or ProbabilityImageRequest or ScoreImageRequest or DecisionImageRequest)
+        List<QuestionDefinition> definitions = BuildDefinitions<T>();
+        DecisionEvaluation response = await EvaluateAsync(request, definitions, cancellationToken).ConfigureAwait(false);
+        T result = new();
+        for (int i = 0; i < definitions.Count; i++)
         {
-            ArgumentNullException.ThrowIfNull(request.EvidenceImages);
-            if (request.EvidenceImages.Count == 0)
-            {
-                throw new ArgumentException("Provide at least one image.", nameof(request));
-            }
-            return BuildImageInput(request.EvidenceImages, request.EvidenceInput, request.EvidenceImageDetail);
+            definitions[i].Property!.SetValue(result, response.Values[i]);
         }
-        if (string.IsNullOrWhiteSpace(request.EvidenceInput))
-        {
-            throw new ArgumentException("Provide text input.", nameof(request));
-        }
-        return request.EvidenceInput;
+        return new(result, response.Model, response.InputTokens, response.OutputTokens, response.TotalTokens);
     }
 
-    private async Task<TValue> EvaluateSingleAsync<TValue>(object input, QuestionAttribute attribute, DecisionRequestBase options, CancellationToken cancellationToken)
+    private async Task<TValue> EvaluateSingleAsync<TValue>(DecisionRequestBase request, QuestionAttribute attribute, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(request);
         ArgumentException.ThrowIfNullOrWhiteSpace(attribute.Question);
         List<QuestionDefinition> definitions = [new("Value", attribute, typeof(TValue), attribute.EnumType is Type enumType ? GetEnumNames(enumType) : [])];
-        DecisionPayload response = await SendDecisionAsync(input, options, definitions, cancellationToken).ConfigureAwait(false);
-        return (TValue)ConvertAnswers(definitions, response.Answers)[0];
+        DecisionEvaluation response = await EvaluateAsync(request, definitions, cancellationToken).ConfigureAwait(false);
+        return (TValue)response.Values[0];
     }
 }

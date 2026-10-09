@@ -36,6 +36,7 @@
     <ProjectReference Include="..\..\src\AgentFrameworkToolkit.Cohere\AgentFrameworkToolkit.Cohere.csproj" />
     <ProjectReference Include="..\..\src\AgentFrameworkToolkit.Google\AgentFrameworkToolkit.Google.csproj" />
     <ProjectReference Include="..\..\src\AgentFrameworkToolkit.Groq\AgentFrameworkToolkit.Groq.csproj" />
+    <ProjectReference Include="..\..\src\AgentFrameworkToolkit.Jev\AgentFrameworkToolkit.Jev.csproj" />
     <ProjectReference Include="..\..\src\AgentFrameworkToolkit.MicrosoftFoundry\AgentFrameworkToolkit.MicrosoftFoundry.csproj" />
     <ProjectReference Include="..\..\src\AgentFrameworkToolkit.Mistral\AgentFrameworkToolkit.Mistral.csproj" />
     <ProjectReference Include="..\..\src\AgentFrameworkToolkit.OpenAI\AgentFrameworkToolkit.OpenAI.csproj" />

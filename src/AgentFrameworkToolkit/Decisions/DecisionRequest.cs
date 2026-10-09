@@ -1,7 +1,7 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.AI;
 
-namespace AgentFrameworkToolkit.OpenAI.Decisions;
+namespace AgentFrameworkToolkit.Decisions;
 
 /// <summary>Contains shared Decisions API request configuration.</summary>
 [PublicAPI]
@@ -10,7 +10,7 @@ public abstract class DecisionRequestBase
     /// <summary>Gets or sets an optional callback receiving this decision's raw HTTP request and response bodies.</summary>
     public Action<RawCallDetails>? RawHttpCallDetails { get; set; }
 
-    /// <summary>Gets or sets an optional opaque end-user identifier, at most 128 characters.</summary>
+    /// <summary>Gets or sets an optional opaque end-user identifier, at most 128 characters. Providers that do not support it throw.</summary>
     public string? SafetyIdentifier { get; set; }
 
     internal abstract string? EvidenceInput { get; }

@@ -1,5 +1,11 @@
 # Changelog - Agent Framework Toolkit
 
+## Version 1.24.1 (10th of October 2026)
+- Added a shared `IDecisionFactory` interface for decision APIs, with Jev support via `JevDecisionFactory` and Microsoft-Decision-1 support via `AzureOpenAIDecisionFactory`.
+- [BREAKING] Moved shared decision types to `AgentFrameworkToolkit.Decisions` and renamed `OpenAIDecisionResponse<T>` to `DecisionResponse<T>`.
+
+---
+
 ## Version 1.24.0 (7th of October 2026)
 - Updated Agent Framework from 1.23.0 to 1.24.0
 - Updated all NuGet packages to the latest

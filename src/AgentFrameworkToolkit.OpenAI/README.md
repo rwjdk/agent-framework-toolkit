@@ -155,6 +155,11 @@ EmbeddingBatchRun embeddingRun = await batchRunner.RunEmbeddingBatchAsync(
 
 ## Decisions API
 
+Shared requests, question attributes, and result types live in `AgentFrameworkToolkit.Decisions`.
+`OpenAIDecisionFactory` and `JevDecisionFactory` implement `IDecisionFactory` with the same operations.
+`AddOpenAIDecisionFactory` registers both the concrete factory and `IDecisionFactory` as the same singleton.
+When registering multiple decision providers, resolve their concrete factories; the last registration supplies `IDecisionFactory`.
+
 `OpenAIDecisionFactory` evaluates shared text and inline images using the
 [OpenAI Decisions API](https://developers.openai.com/api/docs/guides/decisions).
 Use single-question methods or define several questions on a result class.
@@ -204,7 +209,7 @@ For a typed result, define question properties and call `CreateDecisionAsync<T>`
 ```csharp
 using System.ComponentModel;
 using AgentFrameworkToolkit.OpenAI;
-using AgentFrameworkToolkit.OpenAI.Decisions;
+using AgentFrameworkToolkit.Decisions;
 using Microsoft.Extensions.AI;
 
 public class SupportDecision
@@ -237,7 +242,7 @@ public enum Severity
 
 // In your async method:
 OpenAIDecisionFactory factory = new(apiKey, OpenAIChatModels.Gpt6Luna);
-OpenAIDecisionResponse<SupportDecision> response =
+DecisionResponse<SupportDecision> response =
     await factory.CreateDecisionAsync<SupportDecision>(new DecisionRequest
     {
         Input = "The screen arrived broken."
@@ -246,7 +251,7 @@ SupportDecision result = response.Result;
 
 // Include inline images; external image URLs and file IDs are unsupported.
 DataContent image = new(await File.ReadAllBytesAsync("product.png"), "image/png");
-OpenAIDecisionResponse<SupportDecision> imageResponse =
+DecisionResponse<SupportDecision> imageResponse =
     await factory.CreateDecisionAsync<SupportDecision>(
         new DecisionImageRequest { Images = [image], ImageDetail = ImageDetail.High });
 ```
