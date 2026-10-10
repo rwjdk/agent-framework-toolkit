@@ -1,5 +1,11 @@
 # Changelog - Agent Framework Toolkit
 
+## Version 1.24.2 (10th of October 2026)
+- Added non-generic `CreateDecisionAsync` overload with `DynamicDecisionRequest` and `DynamicDecisionImageRequest`, for runtime-defined choice, score, and probability questions.
+- [BREAKING] Custom implementations of `IDecisionFactory` must implement the two new non-generic overloads. Existing calls to the built-in decision factories are unchanged.
+
+---
+
 ## Version 1.24.1 (10th of October 2026)
 - Added a shared `IDecisionFactory` interface for decision APIs, with Jev support via `JevDecisionFactory` and Microsoft-Decision-1 support via `AzureOpenAIDecisionFactory`.
 - [BREAKING] Moved shared decision types to `AgentFrameworkToolkit.Decisions` and renamed `OpenAIDecisionResponse<T>` to `DecisionResponse<T>`.

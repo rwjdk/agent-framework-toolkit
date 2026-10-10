@@ -12,13 +12,13 @@ public partial class OpenAIDecisionFactory
             ["name"] = definition.Name,
             ["instructions"] = definition.Attribute.Question
         };
-        if (definition.Attribute.EnumType is Type enumType)
+        if (definition.Attribute.Kind is "choice" or "score")
         {
-            question[definition.Attribute.Kind == "choice" ? "choices" : "levels"] = definition.Names.Select(name =>
+            question[definition.Attribute.Kind == "choice" ? "choices" : "levels"] = definition.Names.Select((name, index) =>
                 new Dictionary<string, object>
                 {
                     [definition.Attribute.Kind == "choice" ? "value" : "label"] = name,
-                    ["description"] = GetDescription(enumType, name)
+                    ["description"] = definition.GetOptionDescription(index)
                 }).ToArray();
         }
         return question;

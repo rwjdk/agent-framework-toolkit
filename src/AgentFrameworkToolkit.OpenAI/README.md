@@ -204,6 +204,78 @@ a cancellation token and throw on refused or invalid answers.
 and descriptions; enum numeric order defines zero-based levels. Use
 `CreateDecisionAsync<T>` for multiple questions or token usage.
 
+### Runtime-defined questions
+
+Use the non-generic `CreateDecisionAsync` overload when questions and options are
+defined at runtime. No result class or enums are required:
+
+```csharp
+DynamicDecisionRequest request = new()
+{
+    Input = "My card was charged twice. Please refund the duplicate.",
+    Questions =
+    [
+        new ChoiceQuestion
+        {
+            Id = "department",
+            Question = "Which team should handle this?",
+            Choices =
+            [
+                new() { Id = "billing", Description = "Charges, payments, and refunds" },
+                new() { Id = "technical", Description = "Software defects and outages" }
+            ]
+        },
+        new ScoreQuestion
+        {
+            Id = "urgency",
+            Question = "How urgently should support respond?",
+            Levels = ["Routine", "Soon", "Immediately"]
+        },
+        new ProbabilityQuestion
+        {
+            Id = "refund_requested",
+            Question = "Does the customer request a refund?",
+            Threshold = 0.8
+        }
+    ]
+};
+
+DecisionResponse response = await factory.CreateDecisionAsync(request);
+ChoiceAnswer department = response.GetChoice("department");
+Console.WriteLine(department.Value.Id);
+Console.WriteLine(department.Value.Description);
+Console.WriteLine(department.Value.Probability);
+ScoreAnswer urgency = response.GetScore("URGENCY");
+foreach (ScoreLevel level in urgency.Levels)
+{
+    Console.WriteLine($"{level.Index}: {level.Description} — {level.Probability:P0}");
+}
+ProbabilityAnswer refund = response.GetProbability("refund_requested");
+Console.WriteLine(refund.IsTrue);
+Console.WriteLine(response.TotalTokenCount);
+```
+
+`Questions` accepts the three built-in `IQuestion` implementations only. IDs and
+instructions must be nonempty; question IDs must be unique ignoring case.
+Choices require at least two options with nonempty IDs and descriptions, and option
+IDs must be unique ignoring case. Scores require at least two nonempty level
+descriptions; their order defines zero-based score indices.
+`ChoiceAnswer.Options` and `ScoreAnswer.Levels` are immutable snapshots in request
+order. `ChoiceAnswer.Value` is the full selected option. `ScoreAnswer.Value` is the
+weighted score, with confidence alongside it. `ProbabilityAnswer` exposes `Value`,
+`Threshold` (default 0.5), and `IsTrue` using an inclusive threshold.
+
+Answer lookup is case-insensitive. Unknown IDs throw `KeyNotFoundException`, and
+using the wrong accessor throws `InvalidOperationException`. Refused, missing, or
+invalid answers fail the entire operation, just like typed decisions.
+
+For images, use `DynamicDecisionImageRequest` with required `Images`, required
+`Questions`, optional `Input`, and optional `ImageDetail`. Existing inline image
+limits and request configuration apply. Dynamic text requests also work with
+Azure OpenAI and Jev; those providers continue to reject image requests.
+
+### Attribute-defined questions
+
 For a typed result, define question properties and call `CreateDecisionAsync<T>`:
 
 ```csharp

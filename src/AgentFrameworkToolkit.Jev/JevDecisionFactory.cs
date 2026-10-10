@@ -53,7 +53,7 @@ public sealed class JevDecisionFactory : DecisionFactory
 
     internal override async Task<DecisionEvaluation> EvaluateAsync(DecisionRequestBase request, List<QuestionDefinition> definitions, CancellationToken cancellationToken)
     {
-        if (request is DecisionImageRequest or ChoiceImageRequest or ProbabilityImageRequest or ScoreImageRequest)
+        if (request is DecisionImageRequest or ChoiceImageRequest or ProbabilityImageRequest or ScoreImageRequest or DynamicDecisionImageRequest)
         {
             throw new NotSupportedException("The Jev Decisions API does not currently support images.");
         }
@@ -64,7 +64,7 @@ public sealed class JevDecisionFactory : DecisionFactory
         }
         if (definitions.Any(definition => definition.Attribute.Kind == "score" && definition.Names.Length > 10))
         {
-            throw new InvalidOperationException("Jev score questions require between 2 and 10 enum levels.");
+            throw new InvalidOperationException("Jev score questions require between 2 and 10 levels.");
         }
         Dictionary<string, object> questions = KeyedDecisionProtocol.CreateQuestions(definitions);
         string requestJson = JsonSerializer.Serialize(new { model = _model, state = request.EvidenceInput, questions }, new JsonSerializerOptions { WriteIndented = true });

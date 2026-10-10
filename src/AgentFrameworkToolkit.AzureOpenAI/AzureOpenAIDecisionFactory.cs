@@ -72,7 +72,7 @@ public sealed class AzureOpenAIDecisionFactory : DecisionFactory
     internal override async Task<DecisionEvaluation> EvaluateAsync(DecisionRequestBase request, List<QuestionDefinition> definitions, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (request is DecisionImageRequest or ChoiceImageRequest or ProbabilityImageRequest or ScoreImageRequest)
+        if (request is DecisionImageRequest or ChoiceImageRequest or ProbabilityImageRequest or ScoreImageRequest or DynamicDecisionImageRequest)
         {
             throw new NotSupportedException("Microsoft decision models do not currently support images.");
         }

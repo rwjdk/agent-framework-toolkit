@@ -7,7 +7,7 @@ public partial class OpenAIDecisionFactory
     private static object BuildRequestInput(DecisionRequestBase request)
     {
         ArgumentNullException.ThrowIfNull(request);
-        if (request is ChoiceImageRequest or ProbabilityImageRequest or ScoreImageRequest or DecisionImageRequest)
+        if (request is ChoiceImageRequest or ProbabilityImageRequest or ScoreImageRequest or DecisionImageRequest or DynamicDecisionImageRequest)
         {
             ArgumentNullException.ThrowIfNull(request.EvidenceImages);
             if (request.EvidenceImages.Count == 0)

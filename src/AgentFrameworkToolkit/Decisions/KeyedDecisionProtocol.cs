@@ -53,6 +53,10 @@ internal static class KeyedDecisionProtocol
         JsonElement element = answer.GetProperty("noul");
         double value = ReadProbability(element);
         double threshold = ((ProbabilityQuestionAttribute)definition.Attribute).Threshold;
+        if (definition.ValueType == typeof(ProbabilityAnswer))
+        {
+            return new ProbabilityAnswer(value, threshold);
+        }
         if (definition.ValueType == typeof(bool))
         {
             return value >= threshold;
@@ -70,6 +74,10 @@ internal static class KeyedDecisionProtocol
 
     private static object ConvertEnumAnswer(QuestionDefinition definition, JsonElement answer)
     {
+        if (definition.Descriptions is not null)
+        {
+            return DynamicDecisionAnswers.ReadOptionAnswer(definition, answer, keyed: true);
+        }
         Type enumType = definition.Attribute.EnumType!;
         bool choice = definition.Attribute.Kind == "choice";
         double confidence = ReadProbability(answer.GetProperty("confidence"));
@@ -188,11 +196,10 @@ internal static class KeyedDecisionProtocol
         {
             return new { type = "noul", instructions = definition.Attribute.Question };
         }
-        Type enumType = definition.Attribute.EnumType!;
         if (definition.Attribute.Kind == "choice")
         {
-            return new { type = "choice", instructions = definition.Attribute.Question, criteria = definition.Names.ToDictionary(name => name, name => GetDescription(enumType, name)) };
+            return new { type = "choice", instructions = definition.Attribute.Question, criteria = definition.Names.Select((name, index) => new KeyValuePair<string, string>(name, definition.GetOptionDescription(index))).ToDictionary() };
         }
-        return new { type = "score", instructions = definition.Attribute.Question, criteria = definition.Names.Select(name => GetDescription(enumType, name)).ToArray() };
+        return new { type = "score", instructions = definition.Attribute.Question, criteria = Enumerable.Range(0, definition.Names.Length).Select(definition.GetOptionDescription).ToArray() };
     }
 }

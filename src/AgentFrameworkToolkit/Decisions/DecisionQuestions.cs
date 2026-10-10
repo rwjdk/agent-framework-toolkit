@@ -5,7 +5,82 @@ namespace AgentFrameworkToolkit.Decisions;
 
 internal static class DecisionQuestions
 {
-    internal sealed record QuestionDefinition(string Name, QuestionAttribute Attribute, Type ValueType, string[] Names, PropertyInfo? Property = null);
+    internal sealed record QuestionDefinition(string Name, QuestionAttribute Attribute, Type ValueType, string[] Names, PropertyInfo? Property = null, string[]? Descriptions = null)
+    {
+        internal string GetOptionDescription(int index) => Descriptions?[index] ?? GetDescription(Attribute.EnumType!, Names[index]);
+    }
+
+    private sealed class RuntimeQuestionAttribute(string question, string kind) : QuestionAttribute(question)
+    {
+        internal override string Kind => kind;
+    }
+
+    internal static List<QuestionDefinition> BuildDynamicDefinitions(IList<IQuestion> questions)
+    {
+        ArgumentNullException.ThrowIfNull(questions);
+        if (questions.Count == 0)
+        {
+            throw new ArgumentException("Provide at least one decision question.", nameof(questions));
+        }
+        List<QuestionDefinition> definitions = [];
+        HashSet<string> ids = new(StringComparer.OrdinalIgnoreCase);
+        foreach (IQuestion question in questions)
+        {
+            ArgumentNullException.ThrowIfNull(question);
+            ArgumentException.ThrowIfNullOrWhiteSpace(question.Id);
+            ArgumentException.ThrowIfNullOrWhiteSpace(question.Question);
+            if (!ids.Add(question.Id))
+            {
+                throw new ArgumentException($"Duplicate question ID '{question.Id}'; IDs must be unique ignoring case.", nameof(questions));
+            }
+            switch (question)
+            {
+                case ProbabilityQuestion probability:
+                    definitions.Add(new(probability.Id, new ProbabilityQuestionAttribute(probability.Question, probability.Threshold), typeof(ProbabilityAnswer), []));
+                    break;
+                case ChoiceQuestion choice:
+                    ArgumentNullException.ThrowIfNull(choice.Choices);
+                    if (choice.Choices.Count < 2)
+                    {
+                        throw new ArgumentException($"Question '{choice.Id}' requires at least two choices.", nameof(questions));
+                    }
+                    HashSet<string> optionIds = new(StringComparer.OrdinalIgnoreCase);
+                    List<string> names = [];
+                    List<string> descriptions = [];
+                    foreach (ChoiceQuestionOption option in choice.Choices)
+                    {
+                        ArgumentNullException.ThrowIfNull(option);
+                        ArgumentException.ThrowIfNullOrWhiteSpace(option.Id);
+                        ArgumentException.ThrowIfNullOrWhiteSpace(option.Description);
+                        if (!optionIds.Add(option.Id))
+                        {
+                            throw new ArgumentException($"Question '{choice.Id}' contains duplicate option ID '{option.Id}'.", nameof(questions));
+                        }
+                        names.Add(option.Id);
+                        descriptions.Add(option.Description);
+                    }
+                    definitions.Add(new(choice.Id, new RuntimeQuestionAttribute(choice.Question, "choice"), typeof(ChoiceAnswer), names.ToArray(), Descriptions: descriptions.ToArray()));
+                    break;
+                case ScoreQuestion score:
+                    ArgumentNullException.ThrowIfNull(score.Levels);
+                    if (score.Levels.Count < 2)
+                    {
+                        throw new ArgumentException($"Question '{score.Id}' requires at least two levels.", nameof(questions));
+                    }
+                    string[] levels = score.Levels.ToArray();
+                    foreach (string level in levels)
+                    {
+                        ArgumentException.ThrowIfNullOrWhiteSpace(level);
+                    }
+                    string[] levelNames = Enumerable.Range(0, levels.Length).Select(index => index.ToString(System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+                    definitions.Add(new(score.Id, new RuntimeQuestionAttribute(score.Question, "score"), typeof(ScoreAnswer), levelNames, Descriptions: levels));
+                    break;
+                default:
+                    throw new NotSupportedException($"Question type '{question.GetType().Name}' is unsupported. Use ChoiceQuestion, ScoreQuestion, or ProbabilityQuestion.");
+            }
+        }
+        return definitions;
+    }
 
     internal static List<QuestionDefinition> BuildDefinitions<T>()
     {

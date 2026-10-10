@@ -191,6 +191,13 @@ Use `ChooseAsync<TEnum>`, `ProbabilityAsync`, and `ScoreAsync<TEnum>` for indivi
 questions, or `CreateDecisionAsync<T>` with the shared question attributes for multiple
 questions and token usage. The same request and result types work across decision providers.
 Choice and score results retain the API's confidence and full probability distribution.
+For runtime-defined questions, call the non-generic `CreateDecisionAsync` overload
+with `DynamicDecisionRequest`. It accepts a list of `ChoiceQuestion`, `ScoreQuestion`,
+and `ProbabilityQuestion` objects. The response exposes case-insensitive
+`GetChoice(id)`, `GetScore(id)`, and `GetProbability(id)` accessors directly,
+alongside model and token usage. See the
+[shared usage example](../AgentFrameworkToolkit.OpenAI/README.md#runtime-defined-questions)
+and the [Azure sandbox sample](../../development/Sandbox/Providers/AzureOpenAI.cs).
 Score results include the API's level descriptions. Refused, missing, or invalid answers
 throw rather than returning a partial result.
 

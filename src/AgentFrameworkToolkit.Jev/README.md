@@ -48,6 +48,15 @@ public enum Severity { Minor, Moderate, Severe }
 returns the weighted score, confidence, probabilities, and level descriptions.
 For multiple questions or token usage, use `CreateDecisionAsync<T>`.
 
+For runtime-defined questions, use the non-generic `CreateDecisionAsync` overload
+with `DynamicDecisionRequest`. Supply a list of `ChoiceQuestion`, `ScoreQuestion`,
+and `ProbabilityQuestion` objects, then retrieve answers directly through
+`GetChoice(id)`, `GetScore(id)`, and `GetProbability(id)` on the response.
+IDs and lookup are case-insensitive; unknown IDs and mismatched accessors throw.
+See the [shared usage example](../AgentFrameworkToolkit.OpenAI/README.md#runtime-defined-questions).
+The existing text-only restriction and limit of 2–10 score levels also apply to
+dynamic requests.
+
 Predicate properties support `bool`, `double`, `decimal`, their nullable forms,
 and `Probability`. Numeric probabilities ignore the attribute threshold.
 Choice properties support the enum, its nullable form, or `Choice<TEnum>`.

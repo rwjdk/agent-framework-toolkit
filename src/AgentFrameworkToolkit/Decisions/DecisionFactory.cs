@@ -7,6 +7,29 @@ namespace AgentFrameworkToolkit.Decisions;
 [PublicAPI]
 public abstract class DecisionFactory : IDecisionFactory
 {
+    /// <inheritdoc />
+    public Task<DecisionResponse> CreateDecisionAsync(DynamicDecisionRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return EvaluateDynamicAsync(request, request.Questions, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<DecisionResponse> CreateDecisionAsync(DynamicDecisionImageRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return EvaluateDynamicAsync(request, request.Questions, cancellationToken);
+    }
+
+    private async Task<DecisionResponse> EvaluateDynamicAsync(DecisionRequestBase request, IList<IQuestion> questions, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        List<QuestionDefinition> definitions = BuildDynamicDefinitions(questions);
+        DecisionEvaluation response = await EvaluateAsync(request, definitions, cancellationToken).ConfigureAwait(false);
+        return new(definitions.Select((definition, index) => new KeyValuePair<string, object>(definition.Name, response.Values[index])),
+            response.Model, response.InputTokens, response.OutputTokens, response.TotalTokens);
+    }
+
     /// <summary>Creates a complete typed decision from text. Refused or invalid answers throw.</summary>
     /// <typeparam name="T">An attributed result class with a public parameterless constructor.</typeparam>
     /// <param name="request">Text evidence and request configuration.</param>

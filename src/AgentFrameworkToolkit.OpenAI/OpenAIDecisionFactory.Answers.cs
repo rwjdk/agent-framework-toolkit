@@ -45,6 +45,10 @@ public partial class OpenAIDecisionFactory
     private static object ConvertPredicate(QuestionDefinition definition, JsonElement answer)
     {
         double probability = ReadProbability(answer.GetProperty("probability"));
+        if (definition.ValueType == typeof(ProbabilityAnswer))
+        {
+            return new ProbabilityAnswer(probability, ((ProbabilityQuestionAttribute)definition.Attribute).Threshold);
+        }
         if (definition.ValueType == typeof(bool))
         {
             return probability >= ((ProbabilityQuestionAttribute)definition.Attribute).Threshold;
@@ -62,6 +66,10 @@ public partial class OpenAIDecisionFactory
 
     private static object ConvertEnumAnswer(QuestionDefinition definition, JsonElement answer)
     {
+        if (definition.Descriptions is not null)
+        {
+            return DynamicDecisionAnswers.ReadOptionAnswer(definition, answer, keyed: false);
+        }
         Type enumType = definition.Attribute.EnumType!;
         bool choice = definition.Attribute.Kind == "choice";
         double confidence = ReadProbability(answer.GetProperty("confidence"));
@@ -70,7 +78,7 @@ public partial class OpenAIDecisionFactory
         JsonElement entries = answer.GetProperty("probabilities");
         if (entries.ValueKind != JsonValueKind.Array || entries.GetArrayLength() != definition.Names.Length)
         {
-                throw new JsonException($"Answer '{definition.Name}' must include probabilities for every option.");
+            throw new JsonException($"Answer '{definition.Name}' must include probabilities for every option.");
         }
         foreach (JsonElement entry in entries.EnumerateArray())
         {

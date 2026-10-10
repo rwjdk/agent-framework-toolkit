@@ -43,6 +43,16 @@ The following providers are currently supported (check out the individual README
 
 > Tip: For other OpenAI-based providers, you can use the OpenAI Package and provide a custom endpoint
 
+## Runtime-defined decisions
+
+OpenAI, Azure OpenAI, and Jev implement `IDecisionFactory`. Use the non-generic
+`CreateDecisionAsync` overload with `DynamicDecisionRequest` to supply a collection
+of named `ChoiceQuestion`, `ScoreQuestion`, and `ProbabilityQuestion` objects.
+Retrieve full answers directly with `GetChoice(id)`, `GetScore(id)`, and
+`GetProbability(id)`. Question IDs and answer lookup are case-insensitive.
+See the [dynamic decision example](src/AgentFrameworkToolkit.OpenAI/README.md#runtime-defined-questions)
+or the [Azure sandbox sample](development/Sandbox/Providers/AzureOpenAI.cs).
+
 ## Additional Packages
 
 | Package | Purpose |   |  |

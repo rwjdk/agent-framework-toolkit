@@ -6,6 +6,18 @@ namespace AgentFrameworkToolkit.Decisions;
 [PublicAPI]
 public interface IDecisionFactory
 {
+    /// <summary>Creates a complete decision from runtime-defined questions and text. Refused or invalid answers throw.</summary>
+    /// <param name="request">Text evidence, questions, and request configuration.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Answers accessible by case-insensitive ID and token usage.</returns>
+    Task<DecisionResponse> CreateDecisionAsync(DynamicDecisionRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>Creates a complete decision from runtime-defined questions and images. Refused or invalid answers throw.</summary>
+    /// <param name="request">Inline images, optional text, questions, and request configuration.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Answers accessible by case-insensitive ID and token usage.</returns>
+    Task<DecisionResponse> CreateDecisionAsync(DynamicDecisionImageRequest request, CancellationToken cancellationToken = default);
+
     /// <summary>Creates a complete typed decision from text. Refused or invalid answers throw.</summary>
     /// <typeparam name="T">An attributed result class with a public parameterless constructor.</typeparam>
     /// <param name="request">Text evidence and request configuration.</param>

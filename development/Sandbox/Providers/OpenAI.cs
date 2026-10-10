@@ -30,7 +30,7 @@ public static class OpenAI
         
         OpenAIAgent aiAgent = agentFactory.CreateAgent(new AgentOptions
         {
-            Model = "gpt-6-luna"
+            Model = "gpt-6-luna",
         });
 
         OpenAIDecisionFactory decisionFactory = new(openAIConnection, OpenAIChatModels.Gpt6Luna);
