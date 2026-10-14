@@ -1,5 +1,12 @@
 # Changelog - Agent Framework Toolkit
 
+## Version 1.25.0 (14th of October 2026)
+- Updated Agent Framework from 1.24.0 to 1.25.0
+- Updated all NuGet packages to the latest
+- Azure Decision API live tests now read configuration from shared .NET User Secrets.
+
+---
+
 ## Version 1.24.2 (10th of October 2026)
 - Added non-generic `CreateDecisionAsync` overload with `DynamicDecisionRequest` and `DynamicDecisionImageRequest`, for runtime-defined choice, score, and probability questions.
 - [BREAKING] Custom implementations of `IDecisionFactory` must implement the two new non-generic overloads. Existing calls to the built-in decision factories are unchanged.

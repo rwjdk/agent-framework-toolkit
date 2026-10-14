@@ -1,6 +1,8 @@
 using AgentFrameworkToolkit.Decisions;
 using AgentFrameworkToolkit.AzureOpenAI;
 using Azure.Identity;
+using Microsoft.Extensions.Configuration;
+using Secrets;
 
 namespace AgentFrameworkToolkit.Tests.Providers;
 
@@ -63,10 +65,11 @@ public class AzureOpenAIDecisionFactoryLiveTests
 
     private static AzureOpenAIDecisionFactory CreateFactory(bool useRbac)
     {
-        string? endpoint = Environment.GetEnvironmentVariable("AzureDecisionEndpoint");
-        string? deployment = Environment.GetEnvironmentVariable("AzureDecisionDeployment");
-        Assert.False(string.IsNullOrWhiteSpace(endpoint), "Configure AzureDecisionEndpoint with the Foundry resource endpoint.");
-        Assert.False(string.IsNullOrWhiteSpace(deployment), "Configure AzureDecisionDeployment with the deployed decision model name.");
+        IConfigurationRoot configuration = new ConfigurationBuilder().AddUserSecrets<SecretsManager>().Build();
+        string? endpoint = configuration["AzureDecisionEndpoint"];
+        string? deployment = configuration["AzureDecisionDeployment"];
+        Assert.False(string.IsNullOrWhiteSpace(endpoint), "Configure AzureDecisionEndpoint with the Foundry resource endpoint in shared .NET user-secrets.");
+        Assert.False(string.IsNullOrWhiteSpace(deployment), "Configure AzureDecisionDeployment with the deployed decision model name in shared .NET user-secrets.");
         AzureOpenAIConnection connection;
         if (useRbac)
         {
@@ -74,8 +77,8 @@ public class AzureOpenAIDecisionFactoryLiveTests
         }
         else
         {
-            string? apiKey = Environment.GetEnvironmentVariable("AzureDecisionApiKey");
-            Assert.False(string.IsNullOrWhiteSpace(apiKey), "Configure AzureDecisionApiKey for API-key live tests.");
+            string? apiKey = configuration["AzureDecisionApiKey"];
+            Assert.False(string.IsNullOrWhiteSpace(apiKey), "Configure AzureDecisionApiKey in shared .NET user-secrets for API-key live tests.");
             connection = new(endpoint!, apiKey!);
         }
         connection.NetworkTimeout = TimeSpan.FromSeconds(60);

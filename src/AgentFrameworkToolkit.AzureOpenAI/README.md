@@ -229,12 +229,3 @@ Total token usage is calculated from input and output counts.
 
 Microsoft-Decision-1 is text-only. Image requests and `SafetyIdentifier` currently
 throw `NotSupportedException`; the common contract remains available to every provider.
-
-### Decision factory tests
-
-Run the unit tests with
-`dotnet test development/Tests/Tests.csproj --configuration Release --filter FullyQualifiedName~AzureOpenAIDecisionFactoryTests`.
-For live tests, configure `AzureDecisionEndpoint`, `AzureDecisionDeployment`, and
-`AzureDecisionApiKey` in the environment and sign in with Azure CLI for RBAC access.
-Run with `--filter FullyQualifiedName~AzureOpenAIDecisionFactoryLiveTests` to check
-both authentication methods against the deployment. Live tests make billable API calls.
