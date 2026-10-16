@@ -83,6 +83,14 @@ public class AzureOpenAIConnection
     /// </summary>
     public TimeSpan? NetworkTimeout { get; set; }
 
+    /// <summary>Lists models exposed by the Azure OpenAI v1 models API. These are catalog model IDs, not a list of configured deployments.</summary>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The models returned by the endpoint. Use Microsoft Foundry discovery to list project deployments.</returns>
+    public Task<IReadOnlyList<ModelInfo>> GetModelsAsync(CancellationToken cancellationToken = default)
+    {
+        return OpenAIModelDiscovery.GetModelsAsync(GetClient(), cancellationToken);
+    }
+
     /// <summary>
     /// Get a Raw Client
     /// </summary>

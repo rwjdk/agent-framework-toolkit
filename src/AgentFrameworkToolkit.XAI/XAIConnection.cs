@@ -15,7 +15,7 @@ public class XAIConnection : OpenAIConnection
     /// </summary>
     public XAIConnection()
     {
-        //Empty
+        Endpoint = DefaultEndpoint;
     }
 
     /// <summary>
@@ -25,7 +25,7 @@ public class XAIConnection : OpenAIConnection
     [SetsRequiredMembers]
     public XAIConnection(string apiKey) : base(apiKey)
     {
-        //Empty
+        Endpoint = DefaultEndpoint;
     }
     /// <summary>
     /// The Default XAI Endpoint

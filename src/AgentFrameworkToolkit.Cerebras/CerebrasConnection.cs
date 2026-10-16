@@ -15,7 +15,7 @@ public class CerebrasConnection : OpenAIConnection
     /// </summary>
     public CerebrasConnection()
     {
-        //Empty
+        Endpoint = DefaultEndpoint;
     }
 
     /// <summary>
@@ -25,7 +25,7 @@ public class CerebrasConnection : OpenAIConnection
     [SetsRequiredMembers]
     public CerebrasConnection(string apiKey) : base(apiKey)
     {
-        //Empty
+        Endpoint = DefaultEndpoint;
     }
 
     /// <summary>

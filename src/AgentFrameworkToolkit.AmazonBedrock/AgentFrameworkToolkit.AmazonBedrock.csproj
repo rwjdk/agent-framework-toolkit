@@ -8,6 +8,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="AWS.Bedrock.MEAI" />
+		<PackageReference Include="AWSSDK.Bedrock" />
 		<PackageReference Include="Microsoft.Agents.AI" />
 	</ItemGroup>
 

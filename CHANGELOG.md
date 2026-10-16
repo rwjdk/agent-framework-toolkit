@@ -1,5 +1,12 @@
 # Changelog - Agent Framework Toolkit
 
+## Version 1.25.1 (16th of October 2026)
+- Added `Connection.GetModelsAsync` for model discovery across supported providers.
+- Fixed default endpoints for standalone OpenAI-compatible connections.
+- Fixed the Amazon Bedrock connection constructor not retaining its API key.
+
+---
+
 ## Version 1.25.0 (14th of October 2026)
 - Updated Agent Framework from 1.24.0 to 1.25.0
 - Updated all NuGet packages to the latest

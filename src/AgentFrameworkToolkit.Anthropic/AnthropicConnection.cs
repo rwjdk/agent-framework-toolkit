@@ -42,6 +42,34 @@ public class AnthropicConnection
     /// </summary>
     public string? Endpoint { get; set; }
 
+    /// <summary>Lists all available models, following every page returned by the provider.</summary>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The available models and their metadata.</returns>
+    public async Task<IReadOnlyList<ModelInfo>> GetModelsAsync(CancellationToken cancellationToken = default)
+    {
+        using AnthropicClient client = GetClient();
+        global::Anthropic.Models.Models.ModelListPage page = await client.Models.List(cancellationToken: cancellationToken);
+        List<ModelInfo> models = [];
+        while (true)
+        {
+            foreach (global::Anthropic.Models.Models.ModelInfo model in page.Items)
+            {
+                models.Add(new ModelInfo
+                {
+                    Name = model.ID,
+                    RawRepresentation = model
+                });
+            }
+
+            if (!page.HasNext())
+            {
+                return models;
+            }
+
+            page = await page.Next(cancellationToken);
+        }
+    }
+
     /// <summary>
     /// Get a Raw Client
     /// </summary>

@@ -15,7 +15,7 @@ public class GroqConnection : OpenAIConnection
     /// </summary>
     public GroqConnection()
     {
-        // Empty
+        Endpoint = DefaultEndpoint;
     }
 
     /// <summary>
@@ -25,7 +25,7 @@ public class GroqConnection : OpenAIConnection
     [SetsRequiredMembers]
     public GroqConnection(string apiKey) : base(apiKey)
     {
-        // Empty
+        Endpoint = DefaultEndpoint;
     }
 
     /// <summary>

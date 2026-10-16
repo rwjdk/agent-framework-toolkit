@@ -41,6 +41,28 @@ public class MicrosoftFoundryConnection
     /// </summary>
     public TimeSpan? NetworkTimeout { get; set; }
 
+    /// <summary>Lists all model deployments in the project, following every page.</summary>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>Deployment names and underlying model metadata.</returns>
+    public async Task<IReadOnlyList<ModelInfo>> GetModelsAsync(CancellationToken cancellationToken = default)
+    {
+        AIProjectClient client = GetClient();
+        List<ModelInfo> models = [];
+        await foreach (AIProjectDeployment deployment in client.Deployments.GetDeploymentsAsync(cancellationToken: cancellationToken))
+        {
+            if (deployment is ModelDeployment model)
+            {
+                models.Add(new ModelInfo
+                {
+                    Name = string.IsNullOrEmpty(model.ConnectionName) ? model.Name : $"{model.ConnectionName}/{model.Name}",
+                    RawRepresentation = model
+                });
+            }
+        }
+
+        return models;
+    }
+
     /// <summary>
     /// Constructor
     /// </summary>

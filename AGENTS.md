@@ -91,9 +91,19 @@ PI changes intentional and minimal; avoid broad refactors unless the user asks f
 - Keep changes aligned with the existing public API shape, provider naming, and README examples.
 - When the work changes user-facing behavior, update `CHANGELOG.md`.
 
+## Changelog writing
+- Keep each entry to one short sentence describing the user-facing change.
+- Omit exhaustive provider lists, result properties, implementation details, and usage explanations.
+- Include compatibility or migration details only when users need them to act on a breaking change.
+
+## README scope
+- Do not add small features, helper methods, or minor API additions to READMEs unless the user explicitly requests it. A concise changelog entry and XML documentation are sufficient.
+- Keep READMEs focused on getting started and core workflows; do not turn them into exhaustive API references or repeat minor feature announcements across provider READMEs.
+- When existing README instructions become inaccurate, make only the correction needed to keep them accurate.
+
 ## Repo update checklist (when relevant)
 - If a new project or package is added: update `AgentFrameworkToolkit.slnx` and `Directory.Packages.props`.
-- If a public API or user-facing behavior changes: update `CHANGELOG.md`. Update an affected README or provider README when usage instructions change.
+- If a public API or user-facing behavior changes: update `CHANGELOG.md`. Update an affected README only when existing instructions become inaccurate or the user explicitly requests it.
 - Omit the `Unreleased` heading from `CHANGELOG.md` when it has no entries; move its entries into the version being released.
 - For routine model-name additions, update code and `CHANGELOG.md` only. Update READMEs only when usage instructions change or the user explicitly requests it.
 - If documentation or samples change: keep `README.md` and provider documentation consistent with the code.

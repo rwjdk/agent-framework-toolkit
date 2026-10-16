@@ -55,6 +55,14 @@ public class OpenAIConnection
     /// </summary>
     public Action<OpenAIClientOptions>? AdditionalOpenAIClientOptions { get; set; }
 
+    /// <summary>Lists models exposed by the configured endpoint, including provider metadata when available.</summary>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The models returned by the provider. A catalog entry does not guarantee inference access.</returns>
+    public virtual Task<IReadOnlyList<ModelInfo>> GetModelsAsync(CancellationToken cancellationToken = default)
+    {
+        return OpenAIModelDiscovery.GetModelsAsync(GetClient(), cancellationToken);
+    }
+
     /// <summary>
     /// Get a Raw Client
     /// </summary>

@@ -15,7 +15,7 @@ public class OpenRouterConnection : OpenAIConnection
     /// </summary>
     public OpenRouterConnection()
     {
-        //Empty
+        Endpoint = DefaultEndpoint;
     }
 
     /// <summary>
@@ -25,7 +25,7 @@ public class OpenRouterConnection : OpenAIConnection
     [SetsRequiredMembers]
     public OpenRouterConnection(string apiKey) : base(apiKey)
     {
-        //Empty
+        Endpoint = DefaultEndpoint;
     }
 
     /// <summary>

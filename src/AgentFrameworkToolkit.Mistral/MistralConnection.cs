@@ -38,6 +38,20 @@ public class MistralConnection
     /// </summary>
     public TimeSpan? NetworkTimeout { get; set; }
 
+    /// <summary>Lists models available to the user.</summary>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The models and their metadata.</returns>
+    public async Task<IReadOnlyList<ModelInfo>> GetModelsAsync(CancellationToken cancellationToken = default)
+    {
+        MistralClient client = GetClient();
+        global::Mistral.SDK.DTOs.ModelList response = await client.Models.GetModelsAsync(cancellationToken);
+        return response.Data.Select(model => new ModelInfo
+        {
+            Name = model.Id,
+            RawRepresentation = model
+        }).ToArray();
+    }
+
     /// <summary>
     /// Get a Raw Client
     /// </summary>

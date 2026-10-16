@@ -1,5 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Amazon;
+using Amazon.Bedrock;
+using Amazon.Bedrock.Model;
 using Amazon.BedrockRuntime;
 using JetBrains.Annotations;
 
@@ -28,6 +30,7 @@ public class AmazonBedrockConnection
     public AmazonBedrockConnection(RegionEndpoint region, string apiKey)
     {
         Region = region;
+        ApiKey = apiKey;
     }
 
     /// <summary>
@@ -46,17 +49,60 @@ public class AmazonBedrockConnection
     /// </summary>
     public TimeSpan? NetworkTimeout { get; set; }
 
+    /// <summary>Lists the region's foundation models and inference profiles, following every profile page.</summary>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>Foundation model IDs and inference profile IDs with provider metadata. Custom models and provisioned throughput are not included.</returns>
+    /// <remarks>Requires bedrock:ListFoundationModels and bedrock:ListInferenceProfiles permissions. Catalog entries do not guarantee inference access.</remarks>
+    public async Task<IReadOnlyList<ModelInfo>> GetModelsAsync(CancellationToken cancellationToken = default)
+    {
+        ApplyApiKey();
+        AmazonBedrockConfig config = new()
+        {
+            RegionEndpoint = Region
+        };
+        if (NetworkTimeout.HasValue)
+        {
+            config.Timeout = NetworkTimeout.Value;
+        }
+
+        using AmazonBedrockClient client = new(config);
+        ListFoundationModelsResponse response = await client.ListFoundationModelsAsync(new ListFoundationModelsRequest(), cancellationToken);
+        List<ModelInfo> models = [];
+        foreach (FoundationModelSummary model in response.ModelSummaries ?? [])
+        {
+            models.Add(new ModelInfo
+            {
+                Name = model.ModelId,
+                RawRepresentation = model
+            });
+        }
+
+        string? nextToken = null;
+        do
+        {
+            ListInferenceProfilesResponse profiles = await client.ListInferenceProfilesAsync(new ListInferenceProfilesRequest { NextToken = nextToken }, cancellationToken);
+            foreach (InferenceProfileSummary profile in profiles.InferenceProfileSummaries ?? [])
+            {
+                models.Add(new ModelInfo
+                {
+                    Name = profile.InferenceProfileId,
+                    RawRepresentation = profile
+                });
+            }
+
+            nextToken = profiles.NextToken;
+        } while (!string.IsNullOrEmpty(nextToken));
+
+        return models;
+    }
+
     /// <summary>
     /// Get a Raw Client
     /// </summary>
     /// <returns>The Raw Client</returns>
     public IAmazonBedrockRuntime GetClient()
     {
-        const string variable = "AWS_BEARER_TOKEN_BEDROCK";
-        if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(variable)) && !string.IsNullOrWhiteSpace(ApiKey))
-        {
-            Environment.SetEnvironmentVariable(variable, ApiKey);
-        }
+        ApplyApiKey();
 
         AmazonBedrockRuntimeConfig config = new()
         {
@@ -69,5 +115,14 @@ public class AmazonBedrockConnection
         }
 
         return new AmazonBedrockRuntimeClient(config);
+    }
+
+    private void ApplyApiKey()
+    {
+        const string variable = "AWS_BEARER_TOKEN_BEDROCK";
+        if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(variable)) && !string.IsNullOrWhiteSpace(ApiKey))
+        {
+            Environment.SetEnvironmentVariable(variable, ApiKey);
+        }
     }
 }

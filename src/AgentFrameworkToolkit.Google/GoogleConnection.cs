@@ -58,6 +58,26 @@ public class GoogleConnection
     /// </summary>
     public TimeSpan? NetworkTimeout { get; set; }
 
+    /// <summary>Lists base models exposed by the configured Gemini or Vertex AI endpoint, following every page.</summary>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The models and their metadata.</returns>
+    public async Task<IReadOnlyList<ModelInfo>> GetModelsAsync(CancellationToken cancellationToken = default)
+    {
+        using Client client = GetClient();
+        Pager<Model, ListModelsConfig, ListModelsResponse> pager = await client.Models.ListAsync(cancellationToken: cancellationToken);
+        List<ModelInfo> models = [];
+        await foreach (Model model in pager.WithCancellation(cancellationToken))
+        {
+            models.Add(new ModelInfo
+            {
+                Name = model.Name ?? throw new AgentFrameworkToolkitException("Google returned a model without a name."),
+                RawRepresentation = model
+            });
+        }
+
+        return models;
+    }
+
     /// <summary>
     /// Vertex Only: Optional String for the project ID. Find it here: https://cloud.google.com/resource-manager/docs/creating-managing-projects#identifying_projects
     /// </summary>
