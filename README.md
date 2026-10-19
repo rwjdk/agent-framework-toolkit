@@ -96,6 +96,36 @@ IList<AITool> tools = aiToolsFactory.GetTools(typeof(MyTools));
 IList<AITool> tools = aiToolsFactory.GetTools(new MyTools());
 ```
 
+## Code sample (DecisionFactory)
+> Using Jev (TypeSafe AI) to turn text into a typed decision. The same requests and result types also work with OpenAI through `OpenAIDecisionFactory` and Microsoft-Decision-1 through `AzureOpenAIDecisionFactory` (see the [Jev](src/AgentFrameworkToolkit.Jev/README.md), [OpenAI](src/AgentFrameworkToolkit.OpenAI/README.md#decisions-api), and [Azure OpenAI](src/AgentFrameworkToolkit.AzureOpenAI/README.md#microsoft-decision-models) READMEs for details).
+
+```cs
+using AgentFrameworkToolkit.Decisions;
+using AgentFrameworkToolkit.Jev;
+
+IDecisionFactory decisionFactory = new JevDecisionFactory("<apiKey>", "<decisionModel>");
+
+DecisionResponse<SupportDecision> response =
+    await decisionFactory.CreateDecisionAsync<SupportDecision>(new DecisionRequest
+    {
+        Input = "The screen arrived shattered. Please send a replacement."
+    });
+
+SupportDecision decision = response.Result;
+Console.WriteLine($"Damaged: {decision.IsDamaged}, Department: {decision.Department}");
+
+public class SupportDecision
+{
+    [ProbabilityQuestion("Is the product damaged?", threshold: 0.7)]
+    public bool IsDamaged { get; set; }
+
+    [ChoiceQuestion<Department>("Which department should handle this?")]
+    public Department Department { get; set; }
+}
+
+public enum Department { Support, Returns }
+```
+
 ## Code sample (MCP Tools)
 ```cs
 AIToolsFactory aiToolsFactory = new();
