@@ -4,6 +4,7 @@ using Microsoft.Extensions.AI;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Collections.Concurrent;
 
 namespace AgentFrameworkToolkit.Codex;
 
@@ -15,12 +16,23 @@ public sealed class CodexAgent : AIAgent, IAsyncDisposable
     private readonly bool _ownsClient;
     private readonly CodexFunctionTools? _tools;
     private ToolInvocationScope? _toolScope;
+    private readonly SemaphoreSlim _runLock = new(1, 1);
+    private readonly CancellationTokenSource _shutdown = new();
+    private readonly object _disposeLock = new();
+    private Task? _disposeTask;
+    private readonly ConcurrentDictionary<string, PendingApproval> _approvals = new();
+    private IAsyncEnumerator<AgentResponseUpdate>? _pendingRun;
+    private CodexAgentSession? _pendingSession;
+    private bool _implicitSession;
+    private bool _streamActive;
+    private CancellationTokenSource? _runLifetime;
+    private volatile bool _disposed;
 
     /// <summary>Creates an agent using an existing Codex client.</summary>
     /// <param name="client">A client dedicated to this agent's event stream.</param>
     /// <param name="options">Thread and agent settings, including the required working directory.</param>
     /// <param name="ownsClient">Whether disposing this agent also disposes the client.</param>
-    public CodexAgent(CodexClient client, CodexAgentOptions options, bool ownsClient = false)
+    internal CodexAgent(CodexClient client, CodexAgentOptions options, bool ownsClient = false)
     {
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(options);
@@ -32,16 +44,11 @@ public sealed class CodexAgent : AIAgent, IAsyncDisposable
         {
             _tools = new CodexFunctionTools(options.Tools, options.Services);
             Client.RequireExperimentalApi();
-            Client.OnRunResponseRequired = HandleServerRequestAsync;
         }
-        else
-        {
-            Client.OnRunResponseRequired = _options.OnRunResponseRequired;
-        }
+        Client.OnServerRequest = HandleServerRequestAsync;
     }
 
-    /// <summary>The underlying client for native account, model, thread, and configuration operations.</summary>
-    public CodexClient Client { get; }
+    internal CodexClient Client { get; }
 
     /// <inheritdoc />
     protected override string? IdCore => _options.Id;
@@ -51,16 +58,6 @@ public sealed class CodexAgent : AIAgent, IAsyncDisposable
 
     /// <inheritdoc />
     public override string? Description => _options.Description;
-
-    /// <inheritdoc />
-    public override object? GetService(Type serviceType, object? serviceKey = null)
-    {
-        if (serviceKey is null && serviceType == typeof(CodexClient))
-        {
-            return Client;
-        }
-        return base.GetService(serviceType, serviceKey);
-    }
 
     /// <summary>Creates a session that resumes a persisted Codex thread on its next run.</summary>
     /// <param name="threadId">The saved native thread identifier.</param>
@@ -83,6 +80,10 @@ public sealed class CodexAgent : AIAgent, IAsyncDisposable
     {
         cancellationToken.ThrowIfCancellationRequested();
         CodexAgentSession typedSession = GetSession(session);
+        if (ReferenceEquals(typedSession, _pendingSession))
+        {
+            throw new InvalidOperationException("Complete the pending run before serializing its session. Pending approvals belong to this agent instance.");
+        }
         JsonObject state = new()
         {
             ["threadId"] = typedSession.ThreadId,
@@ -115,6 +116,139 @@ public sealed class CodexAgent : AIAgent, IAsyncDisposable
     }
 
     private async IAsyncEnumerable<AgentResponseUpdate> RunUpdatesAsync(
+        IEnumerable<ChatMessage> messages, AgentSession? session, AgentRunOptions? options, bool isStreaming,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(messages);
+        IList<ChatMessage> input = messages.ToList();
+        await _runLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        bool paused = false;
+        bool ownsRun = false;
+        bool ownsStream = false;
+        try
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (_streamActive)
+            {
+                throw new InvalidOperationException("Finish or dispose the active response stream before starting another run.");
+            }
+            _streamActive = true;
+            ownsStream = true;
+            if (_pendingRun is not null)
+            {
+                if (!ReferenceEquals(session, _pendingSession) && !(session is null && _implicitSession))
+                {
+                    throw new InvalidOperationException("Continue approvals using the same session and agent instance.");
+                }
+                List<ToolApprovalResponseContent> responses = input.SelectMany(message => message.Contents).OfType<ToolApprovalResponseContent>().ToList();
+                if (responses.Count == 0 || input.Any(message => message.Role != ChatRole.User || message.Contents.Any(content => content is not ToolApprovalResponseContent)) ||
+                    responses.Select(response => response.RequestId).Distinct(StringComparer.Ordinal).Count() != responses.Count ||
+                    responses.Any(response => !_approvals.ContainsKey(response.RequestId)))
+                {
+                    throw new ArgumentException("Supply only responses to this session's pending approval requests.", nameof(messages));
+                }
+                ownsRun = true;
+                foreach (ToolApprovalResponseContent response in responses)
+                {
+                    if (_approvals.TryRemove(response.RequestId, out PendingApproval? approval))
+                    {
+                        approval.Decision.TrySetResult(response.Approved);
+                    }
+                }
+            }
+            else
+            {
+                if (input.SelectMany(message => message.Contents).Any(content => content is ToolApprovalResponseContent))
+                {
+                    throw new ArgumentException("There is no pending approval for this agent.", nameof(messages));
+                }
+                _pendingSession = session is null ? new CodexAgentSession() : GetSession(session);
+                _implicitSession = session is null;
+                _runLifetime = CancellationTokenSource.CreateLinkedTokenSource(_shutdown.Token);
+                _pendingRun = RunNativeUpdatesAsync(input, _pendingSession, options, isStreaming, _runLifetime.Token).GetAsyncEnumerator();
+                ownsRun = true;
+            }
+            CancellationTokenSource runLifetime = _runLifetime!;
+            using CancellationTokenRegistration registration = cancellationToken.Register(() =>
+            {
+                try
+                {
+                    runLifetime.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Agent disposal can finish while the consumer is between streamed updates.
+                }
+            });
+            while (await _pendingRun.MoveNextAsync().ConfigureAwait(false))
+            {
+                AgentResponseUpdate update = _pendingRun.Current;
+                if (update.Contents.OfType<ToolApprovalRequestContent>().Any())
+                {
+                    paused = true;
+                }
+                // Let agent disposal acquire the lock while the consumer processes an update.
+                _runLock.Release();
+                try
+                {
+                    yield return update;
+                }
+                finally
+                {
+                    await _runLock.WaitAsync().ConfigureAwait(false);
+                }
+                ObjectDisposedException.ThrowIf(_disposed, this);
+                if (paused)
+                {
+                    yield break;
+                }
+            }
+        }
+        finally
+        {
+            try
+            {
+                if (ownsRun && (!paused || cancellationToken.IsCancellationRequested))
+                {
+                    await ClearRunAsync().ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                if (ownsStream)
+                {
+                    _streamActive = false;
+                }
+                _runLock.Release();
+            }
+        }
+    }
+
+    private async ValueTask ClearRunAsync()
+    {
+        try
+        {
+            if (_pendingRun is not null)
+            {
+                await _pendingRun.DisposeAsync().ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            foreach (PendingApproval approval in _approvals.Values)
+            {
+                approval.Decision.TrySetCanceled();
+            }
+            _approvals.Clear();
+            _pendingRun = null;
+            _pendingSession = null;
+            _implicitSession = false;
+            _runLifetime?.Dispose();
+            _runLifetime = null;
+        }
+    }
+
+    private async IAsyncEnumerable<AgentResponseUpdate> RunNativeUpdatesAsync(
         IEnumerable<ChatMessage> messages, AgentSession? session, AgentRunOptions? options, bool isStreaming,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
@@ -208,6 +342,21 @@ public sealed class CodexAgent : AIAgent, IAsyncDisposable
             {
                 string method = message.GetProperty("method").GetString()!;
                 message.TryGetProperty("params", out JsonElement parameters);
+                if (method == "aft/approval")
+                {
+                    string requestId = parameters.GetProperty("requestId").GetString()!;
+                    if (_approvals.TryGetValue(requestId, out PendingApproval? approval))
+                    {
+                        yield return new AgentResponseUpdate
+                        {
+                            Role = ChatRole.Assistant,
+                            ResponseId = turnId,
+                            MessageId = requestId,
+                            Contents = [approval.Content]
+                        };
+                    }
+                    continue;
+                }
                 if (parameters.ValueKind == JsonValueKind.Object && parameters.TryGetProperty("threadId", out JsonElement eventThread) &&
                     eventThread.ValueKind == JsonValueKind.String && eventThread.GetString() != typedSession.ThreadId)
                 {
@@ -421,31 +570,96 @@ public sealed class CodexAgent : AIAgent, IAsyncDisposable
             parameters["dynamicTools"] = _tools.CreateDefinitions();
         }
         CodexClient.Merge(parameters, resume ? _options.ThreadResumeParameters : _options.ThreadStartParameters);
+        JsonObject config = parameters["config"] as JsonObject ?? new JsonObject();
+        config["features.default_mode_request_user_input"] = _options.OnUserInputRequested is not null;
+        parameters["config"] = config;
         return parameters;
     }
 
-    private async Task<CodexRunResponse> HandleServerRequestAsync(CodexRunRequest request, CancellationToken cancellationToken)
+    private async Task<CodexServerResponse> HandleServerRequestAsync(CodexServerRequest request, CancellationToken cancellationToken)
     {
         string method = request.Method;
         JsonElement parameters = request.RawRepresentation;
-        if (method == "item/tool/call" && _tools!.CanHandle(parameters))
+        if (method == "item/tool/call")
         {
+            if (_tools?.CanHandle(parameters) != true)
+            {
+                return request.RespondWithNativeResult(CodexFunctionTools.Result("No C# function is registered for the requested tool.", false));
+            }
             ToolInvocationScope? scope = _toolScope;
             if (scope is null || parameters.GetProperty("threadId").GetString() != scope.ThreadId ||
                 (scope.TurnId is not null && parameters.GetProperty("turnId").GetString() != scope.TurnId))
             {
-                return request.CompleteTool("No matching active Codex turn for this tool invocation.", false);
+                return request.RespondWithNativeResult(CodexFunctionTools.Result("No matching active Codex turn for this tool invocation.", false));
             }
             using CancellationTokenSource linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, scope.CancellationToken);
             return request.RespondWithNativeResult(await _tools.InvokeAsync(parameters, this, _options, scope.Messages, scope.IsStreaming, linked.Token).ConfigureAwait(false));
         }
-        if (_options.OnRunResponseRequired is not null)
+        if (request.Kind is CodexServerRequestKind.CommandApproval or CodexServerRequestKind.FileChangeApproval)
         {
-            return await _options.OnRunResponseRequired(request, cancellationToken).ConfigureAwait(false);
+            ToolInvocationScope? scope = _toolScope;
+            if (scope is null || (request.ThreadId is not null && request.ThreadId != scope.ThreadId) ||
+                (request.TurnId is not null && scope.TurnId is not null && request.TurnId != scope.TurnId))
+            {
+                return request.Decline();
+            }
+            string callId = Guid.NewGuid().ToString("N");
+            Dictionary<string, object?> arguments = parameters.EnumerateObject().ToDictionary(property => property.Name, property => (object?)property.Value.Clone());
+            FunctionCallContent call = new(callId, request.Kind == CodexServerRequestKind.CommandApproval ? "codex_command" : "codex_file_change", arguments)
+            {
+                RawRepresentation = parameters
+            };
+            using CancellationTokenSource approvalLifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, scope.CancellationToken);
+            bool approved = await RequestApprovalAsync(call, approvalLifetime.Token).ConfigureAwait(false);
+            return approved ? request.Approve() : request.Decline();
         }
-        return method == "item/tool/call"
-            ? request.CompleteTool("No C# function is registered for the requested tool.", false)
-            : request.RespondWithNativeResult(CodexClient.DefaultServerRequestResult(method));
+        if (request.Kind == CodexServerRequestKind.UserInput)
+        {
+            if (_options.OnUserInputRequested is not { } handler)
+            {
+                throw new NotSupportedException("User input is disabled. Complete the task without asking the user questions.");
+            }
+            ToolInvocationScope? scope = _toolScope;
+            if (scope is null || (request.ThreadId is not null && request.ThreadId != scope.ThreadId) ||
+                (request.TurnId is not null && scope.TurnId is not null && request.TurnId != scope.TurnId))
+            {
+                throw new NotSupportedException("No matching active Codex turn for this question.");
+            }
+            using CancellationTokenSource linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, scope.CancellationToken);
+            CodexUserInputRequest userInput = new(request);
+            CodexUserInputResponse response = await handler(userInput, linked.Token).WaitAsync(linked.Token).ConfigureAwait(false);
+            return userInput.GetServerResponse(response);
+        }
+        throw new NotSupportedException("Unsupported Codex request: " + method);
+    }
+
+    internal async Task<bool> RequestApprovalAsync(FunctionCallContent call, CancellationToken cancellationToken)
+    {
+        string requestId = Guid.NewGuid().ToString("N");
+        // Approval messages are descriptive snapshots; callers cannot change the executable arguments.
+        Dictionary<string, object?>? arguments = call.Arguments?.ToDictionary(entry => entry.Key,
+            entry => entry.Value is null ? null : (object?)JsonSerializer.SerializeToElement(entry.Value));
+        ToolApprovalRequestContent content = new(requestId, new FunctionCallContent(call.CallId, call.Name, arguments))
+        {
+            RawRepresentation = call.RawRepresentation
+        };
+        PendingApproval approval = new(content);
+        _approvals[requestId] = approval;
+        try
+        {
+            Client.PublishApproval(requestId);
+            return await approval.Decision.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _approvals.TryRemove(requestId, out _);
+        }
+    }
+
+    private sealed class PendingApproval(ToolApprovalRequestContent content)
+    {
+        public ToolApprovalRequestContent Content { get; } = content;
+        public TaskCompletionSource<bool> Decision { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     }
 
     private sealed class ToolInvocationScope(string threadId, IList<ChatMessage> messages, bool isStreaming, CancellationToken cancellationToken)
@@ -509,10 +723,39 @@ public sealed class CodexAgent : AIAgent, IAsyncDisposable
         return input;
     }
 
-    /// <summary>Disposes the app-server client when this agent owns it.</summary>
+    /// <summary>Cancels pending runs and disposes the app-server client when this agent owns it. Abandoning an active native turn also closes its client.</summary>
     /// <returns>A task representing shutdown.</returns>
     public ValueTask DisposeAsync()
     {
-        return _ownsClient ? Client.DisposeAsync() : ValueTask.CompletedTask;
+        lock (_disposeLock)
+        {
+            return new ValueTask(_disposeTask ??= DisposeCoreAsync());
+        }
+    }
+
+    private async Task DisposeCoreAsync()
+    {
+        _disposed = true;
+        try
+        {
+            await _shutdown.CancelAsync().ConfigureAwait(false);
+        }
+        finally
+        {
+            await _runLock.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                await ClearRunAsync().ConfigureAwait(false);
+            }
+            finally
+            {
+                _runLock.Release();
+                _shutdown.Dispose();
+                if (_ownsClient)
+                {
+                    await Client.DisposeAsync().ConfigureAwait(false);
+                }
+            }
+        }
     }
 }

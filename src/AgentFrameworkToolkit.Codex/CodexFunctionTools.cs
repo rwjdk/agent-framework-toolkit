@@ -73,8 +73,19 @@ internal sealed class CodexFunctionTools
                 Messages = messages,
                 IsStreaming = isStreaming
             };
-            Func<FunctionInvocationContext, CancellationToken, ValueTask<object?>> invoke =
-                static (invocation, token) => invocation.Function.InvokeAsync(invocation.Arguments, token);
+            Func<FunctionInvocationContext, CancellationToken, ValueTask<object?>> invoke = async (invocation, token) =>
+            {
+                if (invocation.Function is ApprovalRequiredAIFunction ||
+                    invocation.Function.GetService(typeof(ApprovalRequiredAIFunction)) is ApprovalRequiredAIFunction)
+                {
+                    FunctionCallContent call = new(invocation.CallContent.CallId, invocation.Function.Name, invocation.Arguments);
+                    if (!await agent.RequestApprovalAsync(call, token).ConfigureAwait(false))
+                    {
+                        throw new InvalidOperationException("The function call was declined.");
+                    }
+                }
+                return await invocation.Function.InvokeAsync(invocation.Arguments, token).ConfigureAwait(false);
+            };
             if (options.ToolCallingMiddleware is { } middleware)
             {
                 Func<FunctionInvocationContext, CancellationToken, ValueTask<object?>> next = invoke;

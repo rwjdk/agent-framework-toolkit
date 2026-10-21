@@ -13,11 +13,185 @@ namespace AgentFrameworkToolkit.Tests;
 public class CodexTests
 {
     [Fact]
+    public async Task DisposingAnAgentDoesNotWaitForAPausedStreamingConsumerAsync()
+    {
+        ScriptedServer server = new() { HoldTurn = true, EmitTurnStarted = true };
+        await using CodexClient client = server.CreateClient();
+        await using CodexAgent agent = new(client, new CodexAgentOptions { WorkingDirectory = Path.GetTempPath() });
+        await using IAsyncEnumerator<AgentResponseUpdate> stream = agent.RunStreamingAsync("wait", cancellationToken: TestContext.Current.CancellationToken)
+            .GetAsyncEnumerator(TestContext.Current.CancellationToken);
+        Assert.True(await stream.MoveNextAsync());
+        await Assert.ThrowsAsync<InvalidOperationException>(() => agent.RunAsync("another run", cancellationToken: TestContext.Current.CancellationToken));
+
+        await agent.DisposeAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+
+        Assert.True(server.InputDisposed);
+        Assert.True(server.OutputDisposed);
+    }
+
+    [Fact]
+    public async Task DisposingAnActiveAgentCancelsItsRunAndSharesShutdownAsync()
+    {
+        ScriptedServer server = new() { HoldTurn = true };
+        await using CodexClient client = server.CreateClient();
+        await using CodexAgent agent = new(client, new CodexAgentOptions { WorkingDirectory = Path.GetTempPath() });
+        Task<AgentResponse> run = agent.RunAsync("wait", cancellationToken: TestContext.Current.CancellationToken);
+        await server.TurnStarted.Task.WaitAsync(TestContext.Current.CancellationToken);
+
+        Task disposal = agent.DisposeAsync().AsTask();
+        Assert.Same(disposal, agent.DisposeAsync().AsTask());
+        await disposal.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => run);
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => agent.RunAsync("again", cancellationToken: TestContext.Current.CancellationToken));
+        Assert.True(server.InputDisposed);
+        Assert.True(server.OutputDisposed);
+    }
+
+    [Theory]
+    [InlineData("item/commandExecution/requestApproval")]
+    [InlineData("item/fileChange/requestApproval")]
+    public void UnhandledNativeApprovalsAreDeclined(string method)
+    {
+        Assert.Equal("decline", CodexClient.DefaultServerRequestResult(method)["decision"]!.GetValue<string>());
+    }
+
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    public async Task ApprovalsContinueTheOriginalTurnAsync(bool approved, bool streaming)
+    {
+        ScriptedServer server = new() { RequestApproval = true };
+        await using CodexClient client = server.CreateClient();
+        await using CodexAgent agent = new(client, new CodexAgentOptions
+        {
+            WorkingDirectory = Path.GetTempPath(),
+            OnUserInputRequested = (request, token) => throw new InvalidOperationException("Approvals must use MAF content.")
+        });
+        AgentSession session = await agent.CreateSessionAsync(TestContext.Current.CancellationToken);
+        AgentResponse response = streaming
+            ? await agent.RunStreamingAsync("write", session, cancellationToken: TestContext.Current.CancellationToken).ToAgentResponseAsync(TestContext.Current.CancellationToken)
+            : await agent.RunAsync("write", session, cancellationToken: TestContext.Current.CancellationToken);
+        ToolApprovalRequestContent request = Assert.Single(response.Messages.SelectMany(message => message.Contents).OfType<ToolApprovalRequestContent>());
+        FunctionCallContent call = Assert.IsType<FunctionCallContent>(request.ToolCall);
+        Assert.Equal("codex_file_change", call.Name);
+        Assert.Null(server.ServerResponse);
+        AgentSession otherSession = await agent.CreateSessionAsync(TestContext.Current.CancellationToken);
+        ChatMessage decision = new(ChatRole.User, [request.CreateResponse(approved)]);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => agent.RunAsync(decision, otherSession, cancellationToken: TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<ArgumentException>(() => agent.RunAsync("another task", session, cancellationToken: TestContext.Current.CancellationToken));
+        AgentResponse completed = await agent.RunAsync(decision, session, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.NotEmpty(completed.Text);
+        Assert.Equal(approved ? "accept" : "decline", server.ServerResponse!.Value.GetProperty("result").GetProperty("decision").GetString());
+        Assert.Single(server.Requests, message => message.GetProperty("method").GetString() == "turn/start");
+        Assert.Single(server.Requests, message => message.GetProperty("method").GetString() == "thread/start");
+        await Assert.ThrowsAsync<ArgumentException>(() => agent.RunAsync(decision, session, cancellationToken: TestContext.Current.CancellationToken));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task ApprovalRequiredFunctionsDoNotRunBeforeApprovalAsync(bool approved)
+    {
+        ScriptedServer server = new() { RequestTool = true };
+        await using CodexClient client = server.CreateClient();
+        int calls = 0;
+        await using CodexAgent agent = new(client, new CodexAgentOptions
+        {
+            WorkingDirectory = Path.GetTempPath(),
+            Tools = [new ApprovalRequiredAIFunction(AIFunctionFactory.Create((int a, int b) => { calls++; return a + b; }, "add"))]
+        });
+        AgentSession session = await agent.CreateSessionAsync(TestContext.Current.CancellationToken);
+        AgentResponse response = await agent.RunAsync("add", session, cancellationToken: TestContext.Current.CancellationToken);
+        ToolApprovalRequestContent request = Assert.Single(response.Messages.SelectMany(message => message.Contents).OfType<ToolApprovalRequestContent>());
+        Assert.Equal(0, calls);
+        Assert.IsType<FunctionCallContent>(request.ToolCall).Arguments!["a"] = 99;
+        await agent.RunAsync(new ChatMessage(ChatRole.User, [request.CreateResponse(approved)]), session, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal(approved ? 1 : 0, calls);
+        Assert.Equal(approved, server.ServerResponse!.Value.GetProperty("result").GetProperty("success").GetBoolean());
+        if (approved)
+        {
+            Assert.Equal("5", server.ServerResponse.Value.GetProperty("result").GetProperty("contentItems")[0].GetProperty("text").GetString());
+        }
+    }
+
+    [Fact]
+    public async Task DisposingAnAgentWithPendingApprovalClosesTheTurnAsync()
+    {
+        ScriptedServer server = new() { RequestApproval = true };
+        await using CodexClient client = server.CreateClient();
+        CodexAgent agent = new(client, new CodexAgentOptions { WorkingDirectory = Path.GetTempPath() });
+        AgentSession session = await agent.CreateSessionAsync(TestContext.Current.CancellationToken);
+        AgentResponse response = await agent.RunAsync("write", session, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Single(response.Messages.SelectMany(message => message.Contents).OfType<ToolApprovalRequestContent>());
+        await Assert.ThrowsAsync<InvalidOperationException>(() => agent.SerializeSessionAsync(session, cancellationToken: TestContext.Current.CancellationToken).AsTask());
+        await agent.DisposeAsync();
+        Assert.True(server.InputDisposed);
+        Assert.True(server.OutputDisposed);
+        Assert.Contains(server.Requests, message => message.GetProperty("method").GetString() == "turn/interrupt");
+        Assert.True(await client.RunGate.WaitAsync(TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken));
+        client.RunGate.Release();
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task UserInputIsEnabledByItsHandlerAsync(bool enabled)
+    {
+        ScriptedServer server = new() { RequestUserInput = true };
+        await using CodexClient client = server.CreateClient();
+        int questions = 0;
+        await using CodexAgent agent = new(client, new CodexAgentOptions
+        {
+            WorkingDirectory = Path.GetTempPath(),
+            OnUserInputRequested = enabled ? (request, token) =>
+            {
+                questions++;
+                Assert.IsType<CodexUserInputRequest>(request);
+                return Task.FromResult(request.AnswerQuestions(new Dictionary<string, string[]> { ["question-1"] = ["yes"] }));
+            } : null
+        });
+        await agent.RunAsync("work", cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal(enabled ? 1 : 0, questions);
+        Assert.Equal(!enabled, server.ServerResponse!.Value.TryGetProperty("error", out _));
+        Assert.Contains(server.Requests, message => message.GetProperty("method").GetString() == "thread/start" &&
+            message.GetProperty("params").GetProperty("config").GetProperty("features.default_mode_request_user_input").GetBoolean() == enabled);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task UnregisteredToolsFailWithoutReachingTheResponseCallbackAsync(bool registerTools)
+    {
+        ScriptedServer server = new() { RequestTool = true, ToolName = "unregistered" };
+        await using CodexClient client = server.CreateClient();
+        int callbacks = 0;
+        await using CodexAgent agent = new(client, new CodexAgentOptions
+        {
+            WorkingDirectory = Path.GetTempPath(),
+            Tools = registerTools ? [AIFunctionFactory.Create(() => "done", "registered")] : null,
+            OnUserInputRequested = (request, token) =>
+            {
+                callbacks++;
+                throw new InvalidOperationException("Tool calls must not reach the response callback.");
+            }
+        });
+
+        AgentResponse response = await agent.RunAsync("Call a tool", cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal("Hello", response.Text);
+        Assert.Equal(0, callbacks);
+        JsonElement result = server.ServerResponse!.Value.GetProperty("result");
+        Assert.False(result.GetProperty("success").GetBoolean());
+        Assert.Contains("No C# function is registered", result.GetProperty("contentItems")[0].GetProperty("text").GetString());
+    }
+
+    [Fact]
     public async Task ClientDisposesTransportsWhenCancellationCallbackThrowsAsync()
     {
         ScriptedServer server = new() { RequestApproval = true };
         await using CodexClient client = server.CreateClient();
-        client.OnRunResponseRequired = (request, token) =>
+        client.OnServerRequest = (request, token) =>
         {
             token.Register(() => throw new InvalidOperationException("Cancellation callback failed"));
             return Task.FromResult(request.Approve());
@@ -36,17 +210,18 @@ public class CodexTests
     [Fact]
     public async Task AbandonedRunReleasesGateWhenClientDisposalThrowsAsync()
     {
-        ScriptedServer server = new() { RequestApproval = true, HoldTurn = true, EmitTurnStarted = true };
+        ScriptedServer server = new() { RequestUserInput = true, HoldTurn = true, EmitTurnStarted = true };
         await using CodexClient client = server.CreateClient();
         await using CodexAgent agent = new(client, new CodexAgentOptions
         {
-            WorkingDirectory = Path.GetTempPath(),
-            OnRunResponseRequired = (request, token) =>
-            {
-                token.Register(() => throw new InvalidOperationException("Cancellation callback failed"));
-                return Task.FromResult(request.Approve());
-            }
+            WorkingDirectory = Path.GetTempPath()
         });
+        // Inject a failing transport lifetime callback independently of the agent's question handler.
+        client.OnServerRequest = (request, token) =>
+        {
+            token.Register(() => throw new InvalidOperationException("Cancellation callback failed"));
+            return Task.FromResult(request.AnswerQuestions(new Dictionary<string, string[]> { ["question-1"] = ["yes"] }));
+        };
         await using IAsyncEnumerator<AgentResponseUpdate> stream = agent.RunStreamingAsync("Wait", cancellationToken: TestContext.Current.CancellationToken).GetAsyncEnumerator(TestContext.Current.CancellationToken);
         Assert.True(await stream.MoveNextAsync());
         await server.ServerResponseWritten.Task.WaitAsync(TestContext.Current.CancellationToken);
@@ -97,29 +272,6 @@ public class CodexTests
         }
     }
 
-    [Theory]
-    [InlineData("orders", "orders")]
-    [InlineData(null, null)]
-    [InlineData("", null)]
-    public void ToolRequestAccessorsPreserveNamespaceAndArgumentsAfterDocumentDisposal(string? toolNamespace, string? expectedNamespace)
-    {
-        CodexRunRequest request;
-        using (JsonDocument document = JsonDocument.Parse(JsonSerializer.Serialize(new
-        {
-            tool = "lookup", @namespace = toolNamespace, arguments = new { orderId = 123, filter = new { includeArchived = true } }
-        })))
-        {
-            request = new CodexRunRequest("item/tool/call", document.RootElement);
-        }
-        Assert.Equal("lookup", request.ToolName);
-        Assert.Equal(expectedNamespace, request.ToolNamespace);
-        Assert.Equal(123, request.ToolArguments!.Value.GetProperty("orderId").GetInt32());
-        Assert.True(request.ToolArguments.Value.GetProperty("filter").GetProperty("includeArchived").GetBoolean());
-
-        CodexRunRequest missing = new("item/tool/call", JsonSerializer.SerializeToElement(new { tool = "no_arguments" }));
-        Assert.Null(missing.ToolNamespace);
-        Assert.Null(missing.ToolArguments);
-    }
 
     [Theory]
     [InlineData("item/started", "spawnAgent", "inProgress", "running", "Investigating dependencies")]
@@ -241,44 +393,47 @@ public class CodexTests
     }
 
     [Theory]
-    [InlineData("item/commandExecution/requestApproval", CodexRunRequestKind.CommandApproval)]
-    [InlineData("item/fileChange/requestApproval", CodexRunRequestKind.FileChangeApproval)]
-    public void ApprovalHelpersProduceNativeDecisions(string method, CodexRunRequestKind kind)
+    [InlineData("item/commandExecution/requestApproval", nameof(CodexServerRequestKind.CommandApproval))]
+    [InlineData("item/fileChange/requestApproval", nameof(CodexServerRequestKind.FileChangeApproval))]
+    public void ApprovalHelpersProduceNativeDecisions(string method, string kind)
     {
-        CodexRunRequest request = new(method, JsonSerializer.SerializeToElement(new
+        CodexServerRequest request = new(method, JsonSerializer.SerializeToElement(new
         {
             threadId = "thread-1", turnId = "turn-1", itemId = "item-1", command = "echo hello",
             cwd = "/work", reason = "Needs more permissions", grantRoot = "/outside"
         }));
-        Assert.Equal(kind, request.Kind);
+        Assert.Equal(kind, request.Kind.ToString());
         Assert.Equal("echo hello", request.Command);
         Assert.Equal("Needs more permissions", request.Reason);
         Assert.Equal("/outside", request.RequestedWriteRoot);
         Assert.Equal("accept", request.GetResult(request.Approve())!["decision"]!.GetValue<string>());
         Assert.Equal("decline", request.GetResult(request.Decline())!["decision"]!.GetValue<string>());
         Assert.Equal("cancel", request.GetResult(request.Cancel())!["decision"]!.GetValue<string>());
-        Assert.Throws<InvalidOperationException>(() => request.CompleteTool("wrong response"));
     }
 
     [Fact]
     public void TypedQuestionsAndNativeFallbackPreserveResponseShapes()
     {
-        CodexRunRequest request = new("item/tool/requestUserInput", JsonSerializer.SerializeToElement(new
+        CodexServerRequest request = new("item/tool/requestUserInput", JsonSerializer.SerializeToElement(new
         {
             questions = new[] { new { id = "color", question = "Which color?", isSecret = false, options = new[] { new { label = "Blue", description = "Use blue" } } } }
         }));
-        Assert.Equal("Which color?", Assert.Single(request.Questions).Question);
-        Assert.Equal("Blue", Assert.Single(request.Questions[0].Options));
-        CodexRunResponse response = request.AnswerQuestions(new Dictionary<string, string[]> { ["color"] = ["Blue"] });
-        Assert.Equal("Blue", request.GetResult(response)!["answers"]!["color"]!["answers"]![0]!.GetValue<string>());
+        CodexUserInputRequest userInput = new(request);
+        Assert.Equal("Which color?", Assert.Single(userInput.Questions).Question);
+        Assert.Equal("Blue", Assert.Single(userInput.Questions[0].Options));
+        CodexUserInputResponse response = userInput.AnswerQuestions(new Dictionary<string, string[]> { ["color"] = ["Blue"] });
+        Assert.Equal("Blue", request.GetResult(userInput.GetServerResponse(response))!["answers"]!["color"]!["answers"]![0]!.GetValue<string>());
         Assert.Throws<InvalidOperationException>(() => request.Approve());
-        Assert.Throws<ArgumentException>(() => request.AnswerQuestions(new Dictionary<string, string[]>()));
+        Assert.Throws<ArgumentException>(() => userInput.AnswerQuestions(new Dictionary<string, string[]>()));
+        CodexUserInputRequest anotherInput = new(request);
+        Assert.Throws<ArgumentException>(() => anotherInput.GetServerResponse(response));
 
-        CodexRunRequest other = new("future/request", JsonSerializer.SerializeToElement(new { detail = "test" }));
-        Assert.Equal(CodexRunRequestKind.Other, other.Kind);
-        CodexRunResponse native = other.RespondWithNativeResult(new JsonObject { ["custom"] = true });
+        CodexServerRequest other = new("future/request", JsonSerializer.SerializeToElement(new { detail = "test" }));
+        Assert.Equal(CodexServerRequestKind.Other, other.Kind);
+        CodexServerResponse native = other.RespondWithNativeResult(new JsonObject { ["custom"] = true });
         Assert.True(other.GetResult(native)!["custom"]!.GetValue<bool>());
-        Assert.Throws<ArgumentException>(() => other.GetResult(response));
+        Assert.Throws<ArgumentException>(() => other.GetResult(userInput.GetServerResponse(response)));
+        Assert.Throws<ArgumentException>(() => new CodexUserInputRequest(other));
     }
 
     [Theory]
@@ -614,7 +769,6 @@ public class CodexTests
     {
         ScriptedServer server = new() { RequestApproval = true };
         await using CodexClient client = server.CreateClient();
-        bool approvalHandled = false;
         CodexAgentOptions options = new()
         {
             WorkingDirectory = Path.GetTempPath(),
@@ -623,17 +777,14 @@ public class CodexTests
             ServiceTier = CodexServiceTier.Fast,
             ReasoningSummary = CodexReasoningSummary.Detailed,
             Tools = [AIFunctionFactory.Create(() => "unused", "unused")],
-            ThreadStartParameters = new JsonObject { ["sandbox"] = "read-only" },
-            OnRunResponseRequired = (request, cancellationToken) =>
-            {
-                approvalHandled = request.Kind == CodexRunRequestKind.FileChangeApproval;
-                return Task.FromResult(request.Decline());
-            }
+            ThreadStartParameters = new JsonObject { ["sandbox"] = "read-only" }
         };
         await using CodexAgent agent = new(client, options);
-        await agent.RunAsync("inspect", cancellationToken: TestContext.Current.CancellationToken);
+        AgentSession session = await agent.CreateSessionAsync(TestContext.Current.CancellationToken);
+        AgentResponse response = await agent.RunAsync("inspect", session, cancellationToken: TestContext.Current.CancellationToken);
+        ToolApprovalRequestContent approval = Assert.Single(response.Messages.SelectMany(message => message.Contents).OfType<ToolApprovalRequestContent>());
+        await agent.RunAsync(new ChatMessage(ChatRole.User, [approval.CreateResponse(false)]), session, cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.True(approvalHandled);
         Assert.Equal("decline", server.ServerResponse!.Value.GetProperty("result").GetProperty("decision").GetString());
         Assert.Contains(server.Requests, request => request.GetProperty("method").GetString() == "thread/start" &&
             request.GetProperty("params").GetProperty("sandbox").GetString() == "read-only" &&
@@ -689,6 +840,7 @@ public class CodexTests
         public bool OutputDisposed { get; private set; }
         public bool EmitTurnStarted { get; init; }
         public bool RequestApproval { get; init; }
+        public bool RequestUserInput { get; init; }
         public bool RequestTool { get; init; }
         public string ToolName { get; init; } = "add";
         public JsonObject ToolArguments { get; init; } = new() { ["a"] = 2, ["b"] = 3 };
@@ -750,7 +902,14 @@ public class CodexTests
                 }
                 if (RequestApproval)
                 {
-                    Send(new { id = "approval-1", method = "item/fileChange/requestApproval", @params = new { threadId = "thread-1" } });
+                    Send(new { id = "approval-1", method = "item/fileChange/requestApproval", @params = new { threadId = "thread-1", turnId = "turn-1", itemId = "file-1", reason = "Write a file" } });
+                }
+                else if (RequestUserInput)
+                {
+                    Send(new { id = "question-request", method = "item/tool/requestUserInput", @params = new
+                    {
+                        threadId = "thread-1", turnId = "turn-1", itemId = "question-item", questions = new[] { new { id = "question-1", question = "Continue?", isSecret = false } }
+                    } });
                 }
                 else if (RequestTool)
                 {

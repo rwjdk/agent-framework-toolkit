@@ -44,7 +44,7 @@ public class CodexConnection
 
     /// <summary>Creates a new client. The caller owns and must asynchronously dispose it.</summary>
     /// <returns>A client that starts the runtime on first use.</returns>
-    public CodexClient GetClient()
+    internal CodexClient GetClient()
     {
         return new CodexClient(this);
     }

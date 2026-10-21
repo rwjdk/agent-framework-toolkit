@@ -1,24 +1,21 @@
-using JetBrains.Annotations;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace AgentFrameworkToolkit.Codex;
 
-/// <summary>A request from Codex with helpers that build correctly shaped responses.</summary>
-[PublicAPI]
-public sealed class CodexRunRequest
+/// <summary>A native app-server request with helpers for approvals, questions, and protocol results. Agent callbacks use CodexUserInputRequest instead.</summary>
+internal sealed class CodexServerRequest
 {
-    internal CodexRunRequest(string method, JsonElement parameters)
+    internal CodexServerRequest(string method, JsonElement parameters)
     {
         Method = method;
         RawRepresentation = parameters.Clone();
         Kind = method switch
         {
-            "item/commandExecution/requestApproval" => CodexRunRequestKind.CommandApproval,
-            "item/fileChange/requestApproval" => CodexRunRequestKind.FileChangeApproval,
-            "item/tool/requestUserInput" => CodexRunRequestKind.UserInput,
-            "item/tool/call" => CodexRunRequestKind.ToolCall,
-            _ => CodexRunRequestKind.Other
+            "item/commandExecution/requestApproval" => CodexServerRequestKind.CommandApproval,
+            "item/fileChange/requestApproval" => CodexServerRequestKind.FileChangeApproval,
+            "item/tool/requestUserInput" => CodexServerRequestKind.UserInput,
+            _ => CodexServerRequestKind.Other
         };
         ThreadId = ReadString(parameters, "threadId");
         TurnId = ReadString(parameters, "turnId");
@@ -27,15 +24,8 @@ public sealed class CodexRunRequest
         WorkingDirectory = ReadString(parameters, "cwd");
         Reason = ReadString(parameters, "reason");
         RequestedWriteRoot = ReadString(parameters, "grantRoot");
-        ToolName = ReadString(parameters, "tool");
-        ToolNamespace = ReadString(parameters, "namespace") is { Length: > 0 } toolNamespace ? toolNamespace : null;
-        if (Kind == CodexRunRequestKind.ToolCall && parameters.TryGetProperty("arguments", out JsonElement arguments) &&
-            arguments.ValueKind is not (JsonValueKind.Null or JsonValueKind.Undefined))
-        {
-            ToolArguments = arguments.Clone();
-        }
         List<CodexUserInputQuestion> questions = [];
-        if (Kind == CodexRunRequestKind.UserInput && parameters.TryGetProperty("questions", out JsonElement items))
+        if (Kind == CodexServerRequestKind.UserInput && parameters.TryGetProperty("questions", out JsonElement items))
         {
             foreach (JsonElement item in items.EnumerateArray())
             {
@@ -60,7 +50,7 @@ public sealed class CodexRunRequest
     }
 
     /// <summary>The kind of response needed.</summary>
-    public CodexRunRequestKind Kind { get; }
+    public CodexServerRequestKind Kind { get; }
     /// <summary>The native method, for advanced requests.</summary>
     public string Method { get; }
     /// <summary>The native thread identifier, when supplied.</summary>
@@ -77,12 +67,6 @@ public sealed class CodexRunRequest
     public string? Reason { get; }
     /// <summary>The requested write root for file-edit approval, when supplied.</summary>
     public string? RequestedWriteRoot { get; }
-    /// <summary>The dynamic tool name, when supplied.</summary>
-    public string? ToolName { get; }
-    /// <summary>The dynamic tool namespace, or null for an unnamespaced tool.</summary>
-    public string? ToolNamespace { get; }
-    /// <summary>The dynamic tool arguments, preserving their JSON shape, or null when absent. The value remains valid independently of the original request document.</summary>
-    public JsonElement? ToolArguments { get; }
     /// <summary>The questions to answer for a user-input request.</summary>
     public IReadOnlyList<CodexUserInputQuestion> Questions { get; }
     /// <summary>The full native request parameters, including fields without typed mappings.</summary>
@@ -90,23 +74,23 @@ public sealed class CodexRunRequest
 
     /// <summary>Approves this command or file-edit request once.</summary>
     /// <returns>The approval response.</returns>
-    public CodexRunResponse Approve() => Approval("accept");
+    public CodexServerResponse Approve() => Approval("accept");
 
     /// <summary>Declines this command or file-edit request.</summary>
     /// <returns>The decline response.</returns>
-    public CodexRunResponse Decline() => Approval("decline");
+    public CodexServerResponse Decline() => Approval("decline");
 
     /// <summary>Cancels this command or file-edit approval request and its turn.</summary>
     /// <returns>The cancellation response.</returns>
-    public CodexRunResponse Cancel() => Approval("cancel");
+    public CodexServerResponse Cancel() => Approval("cancel");
 
     /// <summary>Answers a user-input request using question identifiers and one or more answers per question.</summary>
     /// <param name="answers">Answers keyed by question identifier.</param>
     /// <returns>The user-input response.</returns>
-    public CodexRunResponse AnswerQuestions(IReadOnlyDictionary<string, string[]> answers)
+    public CodexServerResponse AnswerQuestions(IReadOnlyDictionary<string, string[]> answers)
     {
         ArgumentNullException.ThrowIfNull(answers);
-        RequireKind(CodexRunRequestKind.UserInput);
+        RequireKind(CodexServerRequestKind.UserInput);
         JsonObject result = new();
         foreach (CodexUserInputQuestion question in Questions)
         {
@@ -119,22 +103,12 @@ public sealed class CodexRunRequest
         return RespondWithNativeResult(new JsonObject { ["answers"] = result });
     }
 
-    /// <summary>Completes a dynamic tool call. Registered C# functions normally produce these results automatically.</summary>
-    /// <param name="text">The tool output.</param>
-    /// <param name="success">Whether the tool succeeded.</param>
-    /// <returns>The tool response.</returns>
-    public CodexRunResponse CompleteTool(string text, bool success = true)
-    {
-        RequireKind(CodexRunRequestKind.ToolCall);
-        return RespondWithNativeResult(CodexFunctionTools.Result(text, success));
-    }
-
     /// <summary>Returns a native result for advanced requests not covered by the typed helpers.</summary>
     /// <param name="result">The result object required by the native protocol.</param>
     /// <returns>The native response.</returns>
-    public CodexRunResponse RespondWithNativeResult(JsonNode? result) => new(this, result);
+    public CodexServerResponse RespondWithNativeResult(JsonNode? result) => new(this, result);
 
-    internal JsonNode? GetResult(CodexRunResponse response)
+    internal JsonNode? GetResult(CodexServerResponse response)
     {
         ArgumentNullException.ThrowIfNull(response);
         if (!ReferenceEquals(response.Request, this))
@@ -144,16 +118,16 @@ public sealed class CodexRunRequest
         return response.Result?.DeepClone();
     }
 
-    private CodexRunResponse Approval(string decision)
+    private CodexServerResponse Approval(string decision)
     {
-        if (Kind is not (CodexRunRequestKind.CommandApproval or CodexRunRequestKind.FileChangeApproval))
+        if (Kind is not (CodexServerRequestKind.CommandApproval or CodexServerRequestKind.FileChangeApproval))
         {
             throw new InvalidOperationException("Approve, Decline, and Cancel are only valid for command and file-edit approvals.");
         }
         return RespondWithNativeResult(new JsonObject { ["decision"] = decision });
     }
 
-    private void RequireKind(CodexRunRequestKind expected)
+    private void RequireKind(CodexServerRequestKind expected)
     {
         if (Kind != expected)
         {

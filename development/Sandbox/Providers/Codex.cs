@@ -1,5 +1,6 @@
 using AgentFrameworkToolkit.Codex;
 using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
 
 #pragma warning disable AFT999
 
@@ -12,10 +13,9 @@ internal static class Codex
         CodexAgentFactory factory = new();
         await using CodexAgent agent = factory.CreateAgent(new CodexAgentOptions
         {
-            ApprovalPolicy = CodexApprovalPolicy.OnRequest,
             WorkingDirectory = "C:\\Users\\rasmu\\OneDrive\\Codex\\YouTube",
             OnRunEvent = HandleRunEvent,
-            OnRunResponseRequired = HandleRunResponseRequiredAsync
+            OnUserInputRequested = HandleUserInputRequestedAsync
         });
         AgentSession session = await agent.CreateSessionAsync();
 
@@ -26,6 +26,18 @@ internal static class Codex
             if (!string.IsNullOrWhiteSpace(input))
             {
                 AgentResponse response = await agent.RunAsync(input, session);
+                while (response.Messages.SelectMany(message => message.Contents).OfType<ToolApprovalRequestContent>().ToList() is { Count: > 0 } approvals)
+                {
+                    List<AIContent> decisions = [];
+                    foreach (ToolApprovalRequestContent approval in approvals)
+                    {
+                        FunctionCallContent call = (FunctionCallContent)approval.ToolCall;
+                        DisplayApproval(call);
+                        Console.Write("Approve? [y/N] ");
+                        decisions.Add(approval.CreateResponse(string.Equals(Console.ReadLine(), "y", StringComparison.OrdinalIgnoreCase)));
+                    }
+                    response = await agent.RunAsync(new ChatMessage(ChatRole.User, decisions), session);
+                }
                 Console.WriteLine(response);
 
                 IReadOnlyList<CodexFileChange> fileChanges = response.GetFileChanges();
@@ -35,6 +47,39 @@ internal static class Codex
                 }
 
                 Console.WriteLine("---");
+            }
+        }
+    }
+
+    private static void DisplayApproval(FunctionCallContent call)
+    {
+        Console.WriteLine();
+        if (call.Name is "codex_command" or "codex_file_change")
+        {
+            Console.WriteLine(call.Name == "codex_command" ? "Permission to run a command" : "Permission to edit files");
+            DisplayArgument("reason", "Reason");
+            DisplayArgument("cwd", "Working directory");
+            DisplayArgument("grantRoot", "Requested write directory");
+            DisplayArgument("command", "Command");
+        }
+        else
+        {
+            Console.WriteLine($"Permission to call {call.Name}");
+            if (call.Arguments is not null)
+            {
+                foreach (string name in call.Arguments.Keys)
+                {
+                    DisplayArgument(name, name);
+                }
+            }
+        }
+
+        void DisplayArgument(string name, string label)
+        {
+            if (call.Arguments?.TryGetValue(name, out object? value) == true &&
+                value?.ToString() is { } text && !string.IsNullOrWhiteSpace(text))
+            {
+                Console.WriteLine($"{label}: {text}");
             }
         }
     }
@@ -78,21 +123,19 @@ internal static class Codex
         }
     }
 
-    private static Task<CodexRunResponse> HandleRunResponseRequiredAsync(CodexRunRequest request, CancellationToken cancellationToken)
+    private static Task<CodexUserInputResponse> HandleUserInputRequestedAsync(CodexUserInputRequest request, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        // The default Never policy usually avoids approvals. If Codex requests one, accept automatically.
-        // Use ApprovalPolicy.OnRequest to allow Codex to request approvals when needed.
-        if (request.Kind is CodexRunRequestKind.CommandApproval or CodexRunRequestKind.FileChangeApproval)
+        Dictionary<string, string[]> answers = [];
+        foreach (CodexUserInputQuestion question in request.Questions)
         {
-            Console.WriteLine($"[Automatically approved] {request.Kind}: {request.Command ?? request.RequestedWriteRoot ?? request.ItemId}");
-            if (!string.IsNullOrWhiteSpace(request.Reason))
+            Console.WriteLine(question.Question);
+            if (question.Options.Count > 0)
             {
-                Console.WriteLine($"  Reason: {request.Reason}");
+                Console.WriteLine(string.Join(" / ", question.Options));
             }
-            return Task.FromResult(request.Approve());
+            answers[question.Id] = [Console.ReadLine() ?? ""];
         }
-        // Registered C# tools run automatically. Add an application-specific answer strategy for user-input requests.
-        throw new NotSupportedException($"No response handler for {request.Kind} ({request.Method}).");
+        return Task.FromResult(request.AnswerQuestions(answers));
     }
 }

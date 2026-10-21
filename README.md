@@ -160,23 +160,13 @@ ChatBatchRun run = await batchRunner.RunChatBatchAsync(
     ]);
 ```
 
-**More Info**
-
-[![WIKI](https://img.shields.io/badge/Wiki-brown?style=for-the-badge)](https://github.com/rwjdk/agent-framework-toolkit/wiki)
-[![Changelog](https://img.shields.io/badge/-Changelog-darkgreen?style=for-the-badge)](https://github.com/rwjdk/agent-framework-toolkit/blob/main/CHANGELOG.md)
-[![YouTube](https://img.shields.io/badge/-YouTube-darkred?style=for-the-badge)](https://www.youtube.com/playlist?list=PLhGl0l5La4sa2XT_K5ndgdStQNchSHe5x)
-[![Contributing](https://img.shields.io/badge/-Contributing-blue?style=for-the-badge)](https://github.com/rwjdk/agent-framework-toolkit/blob/main/CONTRIBUTING.md)
-[![Security](https://img.shields.io/badge/-Security-gray?style=for-the-badge)](https://github.com/rwjdk/agent-framework-toolkit/blob/main/SECURITY.md)
-
-## Codex (experimental)
-
-Hand coding tasks to a local Codex runtime through `AIAgent`, with streaming responses and resumable threads. The provider is experimental while we stabilize the implementation; APIs and behavior may change. Install and authenticate the Codex CLI separately. See the [Codex README](src/AgentFrameworkToolkit.Codex/README.md) for setup and examples.
+## Code sample (Codex Harnes Automation)
 
 ```csharp
 using AgentFrameworkToolkit.Codex;
 using Microsoft.Agents.AI;
 
-#pragma warning disable AFT999 // Codex support is experimental while the implementation stabilizes.
+#pragma warning disable AFT999 // Codex support is currently experimental.
 
 CodexAgentFactory factory = new();
 await using CodexAgent agent = factory.CreateAgent(@"C:\projects\my-app");
@@ -184,3 +174,11 @@ AgentSession session = await agent.CreateSessionAsync();
 AgentResponse response = await agent.RunAsync("Create a report in artifacts/report.md", session);
 Console.WriteLine(response);
 ```
+
+**More Info**
+
+[![WIKI](https://img.shields.io/badge/Wiki-brown?style=for-the-badge)](https://github.com/rwjdk/agent-framework-toolkit/wiki)
+[![Changelog](https://img.shields.io/badge/-Changelog-darkgreen?style=for-the-badge)](https://github.com/rwjdk/agent-framework-toolkit/blob/main/CHANGELOG.md)
+[![YouTube](https://img.shields.io/badge/-YouTube-darkred?style=for-the-badge)](https://www.youtube.com/playlist?list=PLhGl0l5La4sa2XT_K5ndgdStQNchSHe5x)
+[![Contributing](https://img.shields.io/badge/-Contributing-blue?style=for-the-badge)](https://github.com/rwjdk/agent-framework-toolkit/blob/main/CONTRIBUTING.md)
+[![Security](https://img.shields.io/badge/-Security-gray?style=for-the-badge)](https://github.com/rwjdk/agent-framework-toolkit/blob/main/SECURITY.md)

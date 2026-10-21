@@ -1,7 +1,7 @@
 # Changelog - Agent Framework Toolkit
 
 ## Version 1.25.2 (21st of October 2026)
-- Added the Codex provider (Currently marked as experimental to allow breaking changes if need to, but feel correct)
+- Added the Codex provider (Currently marked as experimental to allow breaking changes if needed, but things feel correct so please try it out)
 
 ---
 

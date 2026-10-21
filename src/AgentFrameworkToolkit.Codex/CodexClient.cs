@@ -1,4 +1,3 @@
-using JetBrains.Annotations;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -9,8 +8,7 @@ using System.Threading.Channels;
 namespace AgentFrameworkToolkit.Codex;
 
 /// <summary>A C# client for the Codex app-server JSON protocol over standard input and output.</summary>
-[PublicAPI]
-public sealed class CodexClient : IAsyncDisposable
+internal sealed class CodexClient : IAsyncDisposable
 {
     private readonly CodexConnection _connection;
     private readonly SemaphoreSlim _startup = new(1, 1);
@@ -49,8 +47,8 @@ public sealed class CodexClient : IAsyncDisposable
         _input = input;
     }
 
-    /// <summary>Responds to server-initiated approvals, questions, and tool calls using typed request helpers.</summary>
-    public Func<CodexRunRequest, CancellationToken, Task<CodexRunResponse>>? OnRunResponseRequired { get; set; }
+    /// <summary>Responds to native app-server requests when using the client directly. Attaching a CodexAgent replaces this handler to manage approvals, user questions, and registered C# tools.</summary>
+    public Func<CodexServerRequest, CancellationToken, Task<CodexServerResponse>>? OnServerRequest { get; set; }
 
     internal void RequireExperimentalApi()
     {
@@ -136,6 +134,18 @@ public sealed class CodexClient : IAsyncDisposable
         return _events.Reader.ReadAllAsync(cancellationToken);
     }
 
+    internal void PublishApproval(string requestId)
+    {
+        if (!_events.Writer.TryWrite(JsonSerializer.SerializeToElement(new
+        {
+            method = "aft/approval",
+            @params = new { requestId }
+        })))
+        {
+            throw new IOException("Codex stopped before requesting approval.");
+        }
+    }
+
     internal static void Merge(JsonObject target, JsonObject source)
     {
         foreach (KeyValuePair<string, JsonNode?> entry in source)
@@ -147,8 +157,8 @@ public sealed class CodexClient : IAsyncDisposable
     internal static JsonNode DefaultServerRequestResult(string method)
     {
         return method is "item/commandExecution/requestApproval" or "item/fileChange/requestApproval"
-            ? new JsonObject { ["decision"] = "accept" }
-            : throw new NotSupportedException("Configure OnRunResponseRequired to handle " + method);
+            ? new JsonObject { ["decision"] = "decline" }
+            : throw new NotSupportedException("Configure OnServerRequest to handle " + method);
     }
 
     private async Task<JsonElement> RequestCoreAsync(string method, JsonObject? parameters, CancellationToken cancellationToken)
@@ -243,10 +253,10 @@ public sealed class CodexClient : IAsyncDisposable
         try
         {
             JsonElement parameters = message.GetProperty("params");
-            if (OnRunResponseRequired is not null)
+            if (OnServerRequest is not null)
             {
-                CodexRunRequest request = new(method, parameters);
-                CodexRunResponse result = await OnRunResponseRequired(request, _lifetime.Token).ConfigureAwait(false);
+                CodexServerRequest request = new(method, parameters);
+                CodexServerResponse result = await OnServerRequest(request, _lifetime.Token).ConfigureAwait(false);
                 response["result"] = request.GetResult(result);
             }
             else

@@ -27,7 +27,7 @@ public class CodexAgentOptions
     /// <summary>Additional developer instructions.</summary>
     public string? Instructions { get; set; }
 
-    /// <summary>C# functions exposed as native Codex dynamic tools. Re-supply the functions when resuming a thread with a new agent.</summary>
+    /// <summary>C# functions exposed as native Codex dynamic tools. Wrap a function in ApprovalRequiredAIFunction to require Agent Framework approval before execution. Re-supply the functions when resuming a thread with a new agent.</summary>
     public IList<AIFunction>? Tools { get; set; }
 
     /// <summary>Optional services supplied to registered function invocations.</summary>
@@ -51,8 +51,8 @@ public class CodexAgentOptions
     /// <summary>The reasoning summary mode for each turn.</summary>
     public CodexReasoningSummary? ReasoningSummary { get; set; }
 
-    /// <summary>The native approval policy. Defaults to never prompting for approval.</summary>
-    public CodexApprovalPolicy? ApprovalPolicy { get; set; } = CodexApprovalPolicy.Never;
+    /// <summary>The native approval policy. Defaults to requesting approval when needed. Requested command/file approvals are returned as ToolApprovalRequestContent and continued with a ToolApprovalResponseContent using the same agent and session.</summary>
+    public CodexApprovalPolicy? ApprovalPolicy { get; set; } = CodexApprovalPolicy.OnRequest;
 
     /// <summary>The thread's execution permissions. Defaults to workspace writes.</summary>
     public CodexPermissions? Permissions { get; set; } = CodexPermissions.WorkspaceWrite;
@@ -75,6 +75,6 @@ public class CodexAgentOptions
     /// <summary>Observes supported run activity, including commands, tools, file edits, reasoning, messages, plans, compaction, and errors. Internal status notifications, warnings, and unmapped events are excluded. Streaming updates retain native notifications for diagnostics.</summary>
     public Action<CodexRunEvent>? OnRunEvent { get; set; }
 
-    /// <summary>Responds to approvals, questions, and tool requests using typed request helpers. When absent, command and file approvals are accepted; other requests receive a protocol error. Registered C# tools are handled automatically.</summary>
-    public Func<CodexRunRequest, CancellationToken, Task<CodexRunResponse>>? OnRunResponseRequired { get; set; }
+    /// <summary>Enables and answers user questions. When null, questions are disabled and unexpected requests are rejected immediately. Command and file approvals use Agent Framework ToolApprovalRequestContent and ToolApprovalResponseContent through RunAsync instead. Registered C# tool calls are handled separately.</summary>
+    public Func<CodexUserInputRequest, CancellationToken, Task<CodexUserInputResponse>>? OnUserInputRequested { get; set; }
 }
