@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\AgentFrameworkToolkit.AmazonBedrock\AgentFrameworkToolkit.AmazonBedrock.csproj" />
+    <ProjectReference Include="..\..\src\AgentFrameworkToolkit.Codex\AgentFrameworkToolkit.Codex.csproj" />
     <ProjectReference Include="..\..\src\AgentFrameworkToolkit.Anthropic\AgentFrameworkToolkit.Anthropic.csproj" />
     <ProjectReference Include="..\..\src\AgentFrameworkToolkit.AzureOpenAI\AgentFrameworkToolkit.AzureOpenAI.csproj" />
     <ProjectReference Include="..\..\src\AgentFrameworkToolkit.Cerebras\AgentFrameworkToolkit.Cerebras.csproj" />

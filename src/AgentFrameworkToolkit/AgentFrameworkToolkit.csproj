@@ -23,6 +23,9 @@
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
       <_Parameter1>AgentFrameworkToolkit.OpenAI</_Parameter1>
     </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>AgentFrameworkToolkit.Codex</_Parameter1>
+    </AssemblyAttribute>
 	</ItemGroup>
 	<ItemGroup>
     <None Include="..\..\README.md">

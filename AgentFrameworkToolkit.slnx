@@ -5,6 +5,7 @@
     <Project Path="src/AgentFrameworkToolkit.AzureOpenAI/AgentFrameworkToolkit.AzureOpenAI.csproj" />
     <Project Path="src/AgentFrameworkToolkit.Cerebras/AgentFrameworkToolkit.Cerebras.csproj" />
     <Project Path="src/AgentFrameworkToolkit.Cohere/AgentFrameworkToolkit.Cohere.csproj" />
+    <Project Path="src/AgentFrameworkToolkit.Codex/AgentFrameworkToolkit.Codex.csproj" />
     <Project Path="src/AgentFrameworkToolkit.Google/AgentFrameworkToolkit.Google.csproj" />
     <Project Path="src/AgentFrameworkToolkit.Groq/AgentFrameworkToolkit.Groq.csproj" />
     <Project Path="src/AgentFrameworkToolkit.Jev/AgentFrameworkToolkit.Jev.csproj" />

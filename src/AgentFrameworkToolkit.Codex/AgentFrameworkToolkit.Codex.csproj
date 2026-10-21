@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Codex app-server coding agents for Microsoft Agent Framework.</Description>
+  </PropertyGroup>
+  <Import Project="..\..\nuget-package.props" />
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Diagnostics.CodeAnalysis.Experimental">
+      <_Parameter1>AFT999</_Parameter1>
+    </AssemblyAttribute>
+    <ProjectReference Include="..\AgentFrameworkToolkit\AgentFrameworkToolkit.csproj" />
+    <None Include="README.md" Pack="True" PackagePath="\" />
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+</Project>

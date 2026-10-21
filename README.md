@@ -27,6 +27,7 @@ The following providers are currently supported (check out the individual README
 
 | Provider | Supported Features |   |  |
 |---|---|---|--|
+| **Codex (experimental)** | `AgentFactory`, coding runtime, resumable threads | [NuGet](https://www.nuget.org/packages/AgentFrameworkToolkit.Codex) | [README](src/AgentFrameworkToolkit.Codex/README.md) |
 | **Amazon Bedrock** | `AgentFactory`, `AIToolsFactory` | [![NuGet](https://img.shields.io/badge/NuGet-blue?style=for-the-badge)](https://www.nuget.org/packages/AgentFrameworkToolkit.AmazonBedrock) | [![README](https://img.shields.io/badge/-README-gray?style=for-the-badge)](https://github.com/rwjdk/agent-framework-toolkit/tree/main/src/AgentFrameworkToolkit.AmazonBedrock/README.md) |
 | **Anthropic (Claude)** | `AgentFactory`, `AIToolsFactory` | [![NuGet](https://img.shields.io/badge/NuGet-blue?style=for-the-badge)](https://www.nuget.org/packages/AgentFrameworkToolkit.Anthropic) | [![README](https://img.shields.io/badge/-README-gray?style=for-the-badge)](https://github.com/rwjdk/agent-framework-toolkit/tree/main/src/AgentFrameworkToolkit.Anthropic/README.md) |
 | **Azure OpenAI** | `AgentFactory`, `AIToolsFactory`, `EmbeddingFactory`, `BatchRunner`, `DecisionFactory` | [![NuGet](https://img.shields.io/badge/NuGet-blue?style=for-the-badge)](https://www.nuget.org/packages/AgentFrameworkToolkit.AzureOpenAI) | [![README](https://img.shields.io/badge/-README-gray?style=for-the-badge)](https://github.com/rwjdk/agent-framework-toolkit/tree/main/src/AgentFrameworkToolkit.AzureOpenAI/README.md) |
@@ -166,3 +167,20 @@ ChatBatchRun run = await batchRunner.RunChatBatchAsync(
 [![YouTube](https://img.shields.io/badge/-YouTube-darkred?style=for-the-badge)](https://www.youtube.com/playlist?list=PLhGl0l5La4sa2XT_K5ndgdStQNchSHe5x)
 [![Contributing](https://img.shields.io/badge/-Contributing-blue?style=for-the-badge)](https://github.com/rwjdk/agent-framework-toolkit/blob/main/CONTRIBUTING.md)
 [![Security](https://img.shields.io/badge/-Security-gray?style=for-the-badge)](https://github.com/rwjdk/agent-framework-toolkit/blob/main/SECURITY.md)
+
+## Codex (experimental)
+
+Hand coding tasks to a local Codex runtime through `AIAgent`, with streaming responses and resumable threads. The provider is experimental while we stabilize the implementation; APIs and behavior may change. Install and authenticate the Codex CLI separately. See the [Codex README](src/AgentFrameworkToolkit.Codex/README.md) for setup and examples.
+
+```csharp
+using AgentFrameworkToolkit.Codex;
+using Microsoft.Agents.AI;
+
+#pragma warning disable AFT999 // Codex support is experimental while the implementation stabilizes.
+
+CodexAgentFactory factory = new();
+await using CodexAgent agent = factory.CreateAgent(@"C:\projects\my-app");
+AgentSession session = await agent.CreateSessionAsync();
+AgentResponse response = await agent.RunAsync("Create a report in artifacts/report.md", session);
+Console.WriteLine(response);
+```

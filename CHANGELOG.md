@@ -1,5 +1,10 @@
 # Changelog - Agent Framework Toolkit
 
+## Version 1.25.2 (21st of October 2026)
+- Added the Codex provider (Currently marked as experimental to allow breaking changes if need to, but feel correct)
+
+---
+
 ## Version 1.25.1 (16th of October 2026)
 - Added `Connection.GetModelsAsync` for model discovery across supported providers.
 - Fixed default endpoints for standalone OpenAI-compatible connections.
