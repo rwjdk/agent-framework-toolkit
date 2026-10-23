@@ -1,6 +1,8 @@
 # Changelog - Agent Framework Toolkit
 
-## Unreleased
+## Version 1.26.0 (23rd of October 2026)
+- Updated Agent Framework from 1.25.0 to 1.26.0
+- Updated all NuGet packages to the latest
 - Added image URL requests for OpenAI decisions.
 - Added `PersistSessions` to let Codex agents create sessions without saving them to disk.
 
