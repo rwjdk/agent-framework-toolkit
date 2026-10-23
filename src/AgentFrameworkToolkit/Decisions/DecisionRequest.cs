@@ -15,6 +15,7 @@ public abstract class DecisionRequestBase
 
     internal abstract string? EvidenceInput { get; }
     internal virtual IList<DataContent>? EvidenceImages => null;
+    internal virtual IList<Uri>? EvidenceImageUrls => null;
     internal virtual ImageDetail EvidenceImageDetail => ImageDetail.Auto;
 }
 

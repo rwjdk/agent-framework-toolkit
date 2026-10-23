@@ -15,6 +15,32 @@ namespace AgentFrameworkToolkit.Tests.Providers;
 
 public class AzureOpenAIDecisionFactoryTests
 {
+
+    [Fact]
+    public async Task ImageUrlRequests_RejectEveryOperationBeforeSendingAsync()
+    {
+        using RecordingHandler handler = new();
+        using HttpClient client = new(handler);
+        IDecisionFactory factory = CreateFactory(client);
+        List<Uri> urls = [new("https://example.test/photo.png")];
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        await Assert.ThrowsAsync<NotSupportedException>(() => factory.CreateDecisionAsync<SupportDecision>(
+            new DecisionImageUrlRequest { ImageUrls = urls }, cancellationToken));
+        await Assert.ThrowsAsync<NotSupportedException>(() => factory.CreateDecisionAsync(new DynamicDecisionImageUrlRequest
+        {
+            ImageUrls = urls, Questions = [new ProbabilityQuestion { Id = "Damaged", Question = "Damaged?" }]
+        }, cancellationToken));
+        await Assert.ThrowsAsync<NotSupportedException>(() => factory.ChooseAsync<Department>(
+            new ChoiceImageUrlRequest { ImageUrls = urls, Question = "Department?" }, cancellationToken));
+        await Assert.ThrowsAsync<NotSupportedException>(() => factory.ScoreAsync<Level>(
+            new ScoreImageUrlRequest { ImageUrls = urls, Question = "Severity?" }, cancellationToken));
+        await Assert.ThrowsAsync<NotSupportedException>(() => factory.ProbabilityAsync(
+            new ProbabilityImageUrlRequest { ImageUrls = urls, Question = "Damaged?" }, cancellationToken));
+        await Assert.ThrowsAsync<NotSupportedException>(() => factory.IsTrueAsync(
+            new ProbabilityImageUrlRequest { ImageUrls = urls, Question = "Damaged?" }, cancellationToken));
+        Assert.Equal(0, handler.RequestCount);
+    }
+
     [Fact]
     public async Task CreateDecision_MapsMicrosoftWireFormatToSharedResultsAsync()
     {

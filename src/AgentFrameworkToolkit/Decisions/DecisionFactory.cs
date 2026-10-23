@@ -141,6 +141,69 @@ public abstract class DecisionFactory : IDecisionFactory
         ArgumentNullException.ThrowIfNull(request);
         return EvaluateSingleAsync<Score<TEnum>>(request, new ScoreQuestionAttribute<TEnum>(request.Question), cancellationToken);
     }
+    /// <inheritdoc />
+    public Task<DecisionResponse> CreateDecisionAsync(DynamicDecisionImageUrlRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return EvaluateDynamicAsync(request, request.Questions, cancellationToken);
+    }
+
+    /// <summary>Creates a complete typed decision from image URLs. Refused or invalid answers throw.</summary>
+    /// <typeparam name="T">An attributed result class with a public parameterless constructor.</typeparam>
+    /// <param name="request">Image URLs, optional text input, and request configuration.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A complete typed result and token usage.</returns>
+    public Task<DecisionResponse<T>> CreateDecisionAsync<T>(DecisionImageUrlRequest request, CancellationToken cancellationToken = default)
+        where T : class, new()
+    {
+        return EvaluateCoreAsync<T>(request, cancellationToken);
+    }
+
+    /// <summary>Selects an enum choice from text and/or images. Refused or invalid answers throw.</summary>
+    /// <typeparam name="TEnum">The enum defining choices and optional descriptions.</typeparam>
+    /// <param name="request">The evidence, question, and request configuration.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The selected enum value.</returns>
+    public Task<TEnum> ChooseAsync<TEnum>(ChoiceImageUrlRequest request, CancellationToken cancellationToken = default)
+        where TEnum : struct, Enum
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return EvaluateSingleAsync<TEnum>(request, new ChoiceQuestionAttribute<TEnum>(request.Question), cancellationToken);
+    }
+
+    /// <summary>Checks whether a condition's probability meets the request's inclusive threshold.</summary>
+    /// <param name="request">The evidence, question, threshold, and request configuration.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Whether the threshold is met. Refused or invalid answers throw.</returns>
+    public async Task<bool> IsTrueAsync(ProbabilityImageUrlRequest request, CancellationToken cancellationToken = default)
+    {
+        return (await ProbabilityAsync(request, cancellationToken).ConfigureAwait(false)).IsTrue;
+    }
+
+    /// <summary>Gets a predicate probability whose IsTrue uses the request's inclusive threshold.</summary>
+    /// <param name="request">The images, question, threshold, and request configuration.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The probability and configured threshold. Refused or invalid answers throw.</returns>
+    public async Task<Probability> ProbabilityAsync(ProbabilityImageUrlRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        double threshold = request.Threshold;
+        Probability.ValidateThreshold(threshold);
+        return await EvaluateSingleAsync<Probability>(request, new ProbabilityQuestionAttribute(request.Question, threshold), cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Evaluates an ordered score question against image URLs.</summary>
+    /// <typeparam name="TEnum">The enum defining levels in numeric order and optional descriptions.</typeparam>
+    /// <param name="request">The images, question, and request configuration.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The weighted score, confidence, distribution, and level descriptions. Refused or invalid answers throw.</returns>
+    public Task<Score<TEnum>> ScoreAsync<TEnum>(ScoreImageUrlRequest request, CancellationToken cancellationToken = default)
+        where TEnum : struct, Enum
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return EvaluateSingleAsync<Score<TEnum>>(request, new ScoreQuestionAttribute<TEnum>(request.Question), cancellationToken);
+    }
+
     internal abstract Task<DecisionEvaluation> EvaluateAsync(DecisionRequestBase request, List<QuestionDefinition> definitions, CancellationToken cancellationToken);
 
     private async Task<DecisionResponse<T>> EvaluateCoreAsync<T>(DecisionRequestBase request, CancellationToken cancellationToken)

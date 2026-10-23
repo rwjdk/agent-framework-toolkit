@@ -14,6 +14,185 @@ namespace AgentFrameworkToolkit.Tests.Providers;
 
 public class OpenAIDecisionFactoryTests
 {
+
+    [Theory]
+    [InlineData("typed", false)]
+    [InlineData("typed", true)]
+    [InlineData("dynamic", false)]
+    [InlineData("dynamic", true)]
+    [InlineData("choice", false)]
+    [InlineData("choice", true)]
+    [InlineData("score", false)]
+    [InlineData("score", true)]
+    [InlineData("probability", false)]
+    [InlineData("probability", true)]
+    [InlineData("boolean", false)]
+    [InlineData("boolean", true)]
+    public async Task ImageUrlRequests_SendUrlsAndMapAnswersAsync(string operation, bool includeText)
+    {
+        JsonObject response = CreateResponse();
+        if (operation != "typed")
+        {
+            int index = operation == "choice" ? 1 : operation == "score" ? 2 : 0;
+            JsonNode answer = response["answers"]![index]!.DeepClone();
+            answer["name"] = operation == "dynamic" ? "Damaged" : "Value";
+            response["answers"] = new JsonArray(answer);
+        }
+        using RecordingHandler handler = new() { ResponseBody = response.ToJsonString() };
+        using HttpClient client = new(handler);
+        IDecisionFactory factory = new OpenAIDecisionFactory(CreateConnection(client), OpenAIChatModels.Gpt6Luna);
+        List<Uri> urls = [new("https://example.test/image.png?version=1&size=2"), new("http://example.test/other.png")];
+        string? input = includeText ? "Inspect these images." : null;
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        switch (operation)
+        {
+            case "typed":
+                DecisionResponse<DetailedResult> typed = await factory.CreateDecisionAsync<DetailedResult>(
+                    new DecisionImageUrlRequest { ImageUrls = urls, Input = input }, cancellationToken);
+                Assert.Equal(0.7, typed.Result.Damaged!.Value);
+                Assert.Equal(Level.High, typed.Result.Category!.Value);
+                Assert.Equal(0.7, typed.Result.Severity!.Value);
+                Assert.Equal(12, typed.TotalTokenCount);
+                break;
+            case "dynamic":
+                DecisionResponse dynamic = await factory.CreateDecisionAsync(new DynamicDecisionImageUrlRequest
+                {
+                    ImageUrls = urls, Input = input,
+                    Questions = [new ProbabilityQuestion { Id = "Damaged", Question = "Damaged?", Threshold = 0.7 }]
+                }, cancellationToken);
+                Assert.True(dynamic.GetProbability("Damaged").IsTrue);
+                Assert.Equal("returned-model", dynamic.Model);
+                break;
+            case "choice":
+                Assert.Equal(Level.High, await factory.ChooseAsync<Level>(
+                    new ChoiceImageUrlRequest { ImageUrls = urls, Input = input, Question = "Category?" }, cancellationToken));
+                break;
+            case "score":
+                Score<Level> score = await factory.ScoreAsync<Level>(
+                    new ScoreImageUrlRequest { ImageUrls = urls, Input = input, Question = "Severity?" }, cancellationToken);
+                Assert.Equal(0.7, score.Value);
+                Assert.Equal(0.6, score.Confidence);
+                break;
+            case "probability":
+                Probability probability = await factory.ProbabilityAsync(
+                    new ProbabilityImageUrlRequest { ImageUrls = urls, Input = input, Question = "Damaged?", Threshold = 0.8 }, cancellationToken);
+                Assert.Equal(0.7, probability.Value);
+                Assert.False(probability.IsTrue);
+                break;
+            case "boolean":
+                Assert.True(await factory.IsTrueAsync(
+                    new ProbabilityImageUrlRequest { ImageUrls = urls, Input = input, Question = "Damaged?", Threshold = 0.7 }, cancellationToken));
+                break;
+        }
+        Assert.Equal(1, handler.RequestCount);
+        Assert.Equal("https://example.test/custom/v1/decisions", handler.RequestUri!.AbsoluteUri);
+        using JsonDocument request = JsonDocument.Parse(handler.RequestBody!);
+        JsonElement message = request.RootElement.GetProperty("input")[0];
+        Assert.Equal("user", message.GetProperty("role").GetString());
+        JsonElement content = message.GetProperty("content");
+        int offset = includeText ? 1 : 0;
+        Assert.Equal(2 + offset, content.GetArrayLength());
+        if (includeText)
+        {
+            Assert.Equal("input_text", content[0].GetProperty("type").GetString());
+            Assert.Equal(input, content[0].GetProperty("text").GetString());
+        }
+        for (int i = 0; i < urls.Count; i++)
+        {
+            Assert.Equal("input_image", content[offset + i].GetProperty("type").GetString());
+            Assert.Equal(urls[i].AbsoluteUri, content[offset + i].GetProperty("image_url").GetString());
+            Assert.Equal("auto", content[offset + i].GetProperty("detail").GetString());
+        }
+    }
+
+    [Theory]
+    [InlineData(ImageDetail.Auto, "auto")]
+    [InlineData(ImageDetail.Low, "low")]
+    [InlineData(ImageDetail.High, "high")]
+    [InlineData(ImageDetail.Original, "original")]
+    public async Task ImageUrlRequests_PreserveImageDetailAndRawCallDetailsAsync(ImageDetail detail, string expected)
+    {
+        using RecordingHandler handler = new();
+        using HttpClient client = new(handler);
+        OpenAIDecisionFactory factory = new(CreateConnection(client), OpenAIChatModels.Gpt6Luna);
+        RawCallDetails? raw = null;
+        await factory.CreateDecisionAsync<DetailedResult>(new DecisionImageUrlRequest
+        {
+            ImageUrls = [new("https://example.test/photo.png")], ImageDetail = detail,
+            SafetyIdentifier = "image-user", RawHttpCallDetails = call => raw = call
+        }, TestContext.Current.CancellationToken);
+        using JsonDocument request = JsonDocument.Parse(handler.RequestBody!);
+        Assert.Equal(expected, request.RootElement.GetProperty("input")[0].GetProperty("content")[0].GetProperty("detail").GetString());
+        Assert.Equal("image-user", request.RootElement.GetProperty("safety_identifier").GetString());
+        Assert.NotNull(raw);
+        Assert.Equal(handler.RequestUri!.AbsoluteUri, raw.RequestUrl);
+        Assert.Contains("https://example.test/photo.png", raw.RequestData);
+        Assert.Contains("returned-model", raw.ResponseData);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(128)]
+    public async Task ImageUrlRequests_AcceptImageCountBoundariesAsync(int count)
+    {
+        using RecordingHandler handler = new();
+        using HttpClient client = new(handler);
+        OpenAIDecisionFactory factory = new(CreateConnection(client), OpenAIChatModels.Gpt6Luna);
+        await factory.CreateDecisionAsync<DetailedResult>(new DecisionImageUrlRequest
+        {
+            ImageUrls = Enumerable.Repeat(new Uri("https://example.test/photo.png"), count).ToList()
+        }, TestContext.Current.CancellationToken);
+        using JsonDocument request = JsonDocument.Parse(handler.RequestBody!);
+        Assert.Equal(count, request.RootElement.GetProperty("input")[0].GetProperty("content").GetArrayLength());
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(129)]
+    public async Task ImageUrlRequests_RejectInvalidImageCountsBeforeSendingAsync(int count)
+    {
+        using RecordingHandler handler = new();
+        using HttpClient client = new(handler);
+        OpenAIDecisionFactory factory = new(CreateConnection(client), OpenAIChatModels.Gpt6Luna);
+        await Assert.ThrowsAsync<ArgumentException>(() => factory.CreateDecisionAsync<DetailedResult>(new DecisionImageUrlRequest
+        {
+            ImageUrls = Enumerable.Repeat(new Uri("https://example.test/photo.png"), count).ToList(), Input = "Text does not replace required images."
+        }, TestContext.Current.CancellationToken));
+        Assert.Equal(0, handler.RequestCount);
+    }
+
+    [Theory]
+    [InlineData("relative.png")]
+    [InlineData("file:///photo.png")]
+    [InlineData("ftp://example.test/photo.png")]
+    [InlineData("data:image/png;base64,AQ==")]
+    public async Task ImageUrlRequests_RejectUnsupportedUrisBeforeSendingAsync(string url)
+    {
+        using RecordingHandler handler = new();
+        using HttpClient client = new(handler);
+        OpenAIDecisionFactory factory = new(CreateConnection(client), OpenAIChatModels.Gpt6Luna);
+        await Assert.ThrowsAsync<ArgumentException>(() => factory.CreateDecisionAsync<DetailedResult>(new DecisionImageUrlRequest
+        {
+            ImageUrls = [new(url, UriKind.RelativeOrAbsolute)]
+        }, TestContext.Current.CancellationToken));
+        Assert.Equal(0, handler.RequestCount);
+    }
+
+    [Fact]
+    public async Task ImageUrlRequests_RejectNullInputsAndInvalidDetailBeforeSendingAsync()
+    {
+        using RecordingHandler handler = new();
+        using HttpClient client = new(handler);
+        OpenAIDecisionFactory factory = new(CreateConnection(client), OpenAIChatModels.Gpt6Luna);
+        await Assert.ThrowsAsync<ArgumentNullException>(() => factory.CreateDecisionAsync<DetailedResult>(
+            new DecisionImageUrlRequest { ImageUrls = null! }, TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => factory.CreateDecisionAsync<DetailedResult>(
+            new DecisionImageUrlRequest { ImageUrls = [null!] }, TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => factory.CreateDecisionAsync<DetailedResult>(
+            new DecisionImageUrlRequest { ImageUrls = [new("https://example.test/photo.png")], ImageDetail = (ImageDetail)999 }, TestContext.Current.CancellationToken));
+        Assert.Equal(0, handler.RequestCount);
+    }
+
     [Theory]
     [InlineData(false, false)]
     [InlineData(true, false)]

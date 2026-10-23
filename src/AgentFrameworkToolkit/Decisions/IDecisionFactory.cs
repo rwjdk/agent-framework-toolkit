@@ -91,4 +91,63 @@ public interface IDecisionFactory
         where TEnum : struct, Enum;
 
 
+    /// <summary>Creates a complete decision from runtime-defined questions and image URLs. Refused or invalid answers throw.</summary>
+    /// <param name="request">Image URLs, optional text, questions, and request configuration.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Answers accessible by case-insensitive ID and token usage.</returns>
+    Task<DecisionResponse> CreateDecisionAsync(DynamicDecisionImageUrlRequest request, CancellationToken cancellationToken = default)
+    {
+        throw new NotSupportedException("This decision factory does not support image URLs.");
+    }
+
+    /// <summary>Creates a complete typed decision from image URLs. Refused or invalid answers throw.</summary>
+    /// <typeparam name="T">An attributed result class with a public parameterless constructor.</typeparam>
+    /// <param name="request">Image URLs, optional text input, and request configuration.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A complete typed result and token usage.</returns>
+    Task<DecisionResponse<T>> CreateDecisionAsync<T>(DecisionImageUrlRequest request, CancellationToken cancellationToken = default)
+        where T : class, new()
+    {
+        throw new NotSupportedException("This decision factory does not support image URLs.");
+    }
+
+    /// <summary>Selects an enum choice from text and/or images. Refused or invalid answers throw.</summary>
+    /// <typeparam name="TEnum">The enum defining choices and optional descriptions.</typeparam>
+    /// <param name="request">The evidence, question, and request configuration.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The selected enum value.</returns>
+    Task<TEnum> ChooseAsync<TEnum>(ChoiceImageUrlRequest request, CancellationToken cancellationToken = default)
+        where TEnum : struct, Enum
+    {
+        throw new NotSupportedException("This decision factory does not support image URLs.");
+    }
+
+    /// <summary>Checks whether a condition's probability meets the request's inclusive threshold.</summary>
+    /// <param name="request">The evidence, question, threshold, and request configuration.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Whether the threshold is met. Refused or invalid answers throw.</returns>
+    Task<bool> IsTrueAsync(ProbabilityImageUrlRequest request, CancellationToken cancellationToken = default)
+    {
+        throw new NotSupportedException("This decision factory does not support image URLs.");
+    }
+
+    /// <summary>Gets a predicate probability whose IsTrue uses the request's inclusive threshold.</summary>
+    /// <param name="request">The images, question, threshold, and request configuration.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The probability and configured threshold. Refused or invalid answers throw.</returns>
+    Task<Probability> ProbabilityAsync(ProbabilityImageUrlRequest request, CancellationToken cancellationToken = default)
+    {
+        throw new NotSupportedException("This decision factory does not support image URLs.");
+    }
+
+    /// <summary>Evaluates an ordered score question against image URLs.</summary>
+    /// <typeparam name="TEnum">The enum defining levels in numeric order and optional descriptions.</typeparam>
+    /// <param name="request">The images, question, and request configuration.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The weighted score, confidence, distribution, and level descriptions. Refused or invalid answers throw.</returns>
+    Task<Score<TEnum>> ScoreAsync<TEnum>(ScoreImageUrlRequest request, CancellationToken cancellationToken = default)
+        where TEnum : struct, Enum
+    {
+        throw new NotSupportedException("This decision factory does not support image URLs.");
+    }
 }

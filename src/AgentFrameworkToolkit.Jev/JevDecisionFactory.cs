@@ -53,7 +53,7 @@ public sealed class JevDecisionFactory : DecisionFactory
 
     internal override async Task<DecisionEvaluation> EvaluateAsync(DecisionRequestBase request, List<QuestionDefinition> definitions, CancellationToken cancellationToken)
     {
-        if (request is DecisionImageRequest or ChoiceImageRequest or ProbabilityImageRequest or ScoreImageRequest or DynamicDecisionImageRequest)
+        if (request is DecisionImageUrlRequest or ChoiceImageUrlRequest or ProbabilityImageUrlRequest or ScoreImageUrlRequest or DynamicDecisionImageUrlRequest or DecisionImageRequest or ChoiceImageRequest or ProbabilityImageRequest or ScoreImageRequest or DynamicDecisionImageRequest)
         {
             throw new NotSupportedException("The Jev Decisions API does not currently support images.");
         }

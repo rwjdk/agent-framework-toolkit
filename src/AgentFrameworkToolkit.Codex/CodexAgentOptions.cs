@@ -24,6 +24,9 @@ public class CodexAgentOptions
     /// <summary>The required working directory used for new and resumed threads.</summary>
     public required string WorkingDirectory { get; set; }
 
+    /// <summary>Whether new sessions are persisted by Codex. Defaults to true. When false, sessions remain in memory and support follow-up runs only while the same Codex app-server is running.</summary>
+    public bool PersistSessions { get; set; } = true;
+
     /// <summary>Additional developer instructions.</summary>
     public string? Instructions { get; set; }
 

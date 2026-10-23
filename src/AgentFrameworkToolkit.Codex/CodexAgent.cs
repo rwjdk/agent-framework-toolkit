@@ -534,6 +534,10 @@ public sealed class CodexAgent : AIAgent, IAsyncDisposable
     private JsonObject CreateThreadParameters(bool resume)
     {
         JsonObject parameters = new();
+        if (!resume)
+        {
+            parameters["ephemeral"] = !_options.PersistSessions;
+        }
         Set(parameters, "model", _options.Model);
         Set(parameters, "cwd", _options.WorkingDirectory);
         Set(parameters, "developerInstructions", _options.Instructions);

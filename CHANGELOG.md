@@ -1,5 +1,11 @@
 # Changelog - Agent Framework Toolkit
 
+## Unreleased
+- Added image URL requests for OpenAI decisions.
+- Added `PersistSessions` to let Codex agents create sessions without saving them to disk.
+
+---
+
 ## Version 1.25.2 (21st of October 2026)
 - Added the Codex provider (Currently marked as experimental to allow breaking changes if needed, but things feel correct so please try it out)
 
