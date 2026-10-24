@@ -138,6 +138,7 @@ Proceed only after the user explicitly approves Phase 3. The user may approve it
 2. Exclude:
    - The current `agent-framework-toolkit` repository and its wiki repository.
    - The upstream `agent-framework` source repository, whose framework references are normally project references rather than NuGet consumption.
+   - The `agent-framework-contribute` repository, even when its samples contain matching NuGet references.
    - The `extensions` repository.
 3. Read each candidate repository's applicable `AGENTS.md` or equivalent repository instructions.
 4. Include only repositories with actual NuGet `PackageReference` or `PackageVersion` entries for at least one of:
