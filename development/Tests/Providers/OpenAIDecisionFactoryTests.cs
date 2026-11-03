@@ -1,6 +1,7 @@
 using System.ClientModel;
 using System.ClientModel.Primitives;
 using System.ComponentModel;
+using System.Globalization;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -278,12 +279,12 @@ public class OpenAIDecisionFactoryTests
     }
 
     [Theory]
-    [InlineData(0, false)]
-    [InlineData(0.69, false)]
-    [InlineData(0.7, true)]
-    [InlineData(0.71, true)]
-    [InlineData(1, true)]
-    public async Task CreateDecision_CustomThresholdAppliesOnlyToBooleanAndProbabilityResultsAsync(double probability, bool expected)
+    [InlineData(0, "0", false)]
+    [InlineData(0.69, "0.69", false)]
+    [InlineData(0.7, "0.7", true)]
+    [InlineData(0.71, "0.71", true)]
+    [InlineData(1, "1", true)]
+    public async Task CreateDecision_CustomThresholdAppliesOnlyToBooleanAndProbabilityResultsAsync(double probability, string expectedDecimalText, bool expected)
     {
         JsonObject response = CreateResponse();
         JsonArray answers = [];
@@ -308,8 +309,9 @@ public class OpenAIDecisionFactoryTests
         Assert.Equal(expected, result.Result.NullableProbability.IsTrue);
         Assert.Equal(probability, result.Result.Double);
         Assert.Equal(probability, result.Result.NullableDouble);
-        Assert.Equal((decimal)probability, result.Result.Decimal);
-        Assert.Equal((decimal)probability, result.Result.NullableDecimal);
+        decimal expectedDecimal = decimal.Parse(expectedDecimalText, CultureInfo.InvariantCulture);
+        Assert.Equal(expectedDecimal, result.Result.Decimal);
+        Assert.Equal(expectedDecimal, result.Result.NullableDecimal);
         using JsonDocument request = JsonDocument.Parse(handler.RequestBody!);
         foreach (JsonElement question in request.RootElement.GetProperty("questions").EnumerateArray())
         {
