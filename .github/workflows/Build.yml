@@ -10,6 +10,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
     
     steps:
     - uses: actions/checkout@v4
@@ -27,5 +30,16 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '24'      
+    - name: Log in to NuGet using trusted publishing
+      uses: NuGet/login@v1
+      id: nuget-login
+      with:
+        user: rwjdk
     - name: Publish to NuGet if needed
-      run: dotnet nuget push **\*.nupkg --source 'https://api.nuget.org/v3/index.json' --api-key ${{secrets.NUGET_API_KEY}} --skip-duplicate
+      run: |
+        shopt -s globstar
+        for package in src/**/bin/Release/*.nupkg; do
+          dotnet nuget push "$package" --source 'https://api.nuget.org/v3/index.json' --api-key "$NUGET_API_KEY" --skip-duplicate
+        done
+      env:
+        NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
