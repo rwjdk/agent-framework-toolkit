@@ -166,18 +166,19 @@ ChatBatchRun run = await batchRunner.RunChatBatchAsync(
 
 > Note: Batch runner APIs are marked experimental with `AFT999`. In Azure OpenAI, `Model` is your deployment name.
 
-## Microsoft decision models
+## Azure decision APIs
 
 `AzureOpenAIDecisionFactory` implements the shared `IDecisionFactory` contract used by
 OpenAI and Jev. Supply a Foundry resource endpoint, authentication, and the deployment
-name of your Microsoft decision model. The deployment name is required and has no default.
+name of your decision model, and select `DecisionProtocol.Jev` (Microsoft Decision-1)
+or `DecisionProtocol.OpenAI` (OpenAI Decisions). The deployment name and protocol are required.
 
 ```csharp
 using AgentFrameworkToolkit.AzureOpenAI;
 using AgentFrameworkToolkit.Decisions;
 
 IDecisionFactory factory = new AzureOpenAIDecisionFactory(
-    "https://YOUR_RESOURCE.services.ai.azure.com", apiKey, "Decision-1");
+    "https://YOUR_RESOURCE.services.ai.azure.com", DecisionProtocol.Jev, apiKey, "Decision-1");
 
 bool urgent = await factory.IsTrueAsync(new ProbabilityRequest
 {
@@ -201,8 +202,10 @@ and the [Azure sandbox sample](../../development/Sandbox/Providers/AzureOpenAI.c
 Score results include the API's level descriptions. Refused, missing, or invalid answers
 throw rather than returning a partial result.
 
-The factory calls `/providers/microsoft/v1/systemone` with `model` set to the deployment
+With `DecisionProtocol.Jev`, the factory calls `/providers/microsoft/v1/systemone` with `model` set to the deployment
 name, `state` set to the request's `Input`, and keyed `noul`, `choice`, or `score` questions.
+With `DecisionProtocol.OpenAI`, it reuses the OpenAI Decisions implementation at
+`/openai/v1/decisions`, including image requests, with your Azure deployment name.
 It uses `AzureOpenAIConnection` for API-key or RBAC authentication, endpoint correction,
 network timeout, and `AdditionalOpenAIClientOptions` transport configuration. The connection
 settings are retained at construction; later connection changes do not reconfigure the factory.
@@ -215,9 +218,9 @@ AzureOpenAIConnection connection = new(
 {
     NetworkTimeout = TimeSpan.FromSeconds(60)
 };
-AzureOpenAIDecisionFactory factory = new(connection, "Decision-1");
+AzureOpenAIDecisionFactory factory = new(connection, DecisionProtocol.Jev, "Decision-1");
 
-services.AddAzureOpenAIDecisionFactory(connection, "Decision-1");
+services.AddAzureOpenAIDecisionFactory(connection, DecisionProtocol.Jev, "Decision-1");
 // Also available: endpoint + API key, or endpoint + TokenCredential.
 ```
 
@@ -225,7 +228,7 @@ DI registers the concrete factory and `IDecisionFactory` as the same singleton.
 When registering multiple decision providers, resolve their concrete factories;
 the last registration supplies `IDecisionFactory`. All operations accept cancellation
 tokens. Set `RawHttpCallDetails` on a request to inspect request and response bodies.
-Total token usage is calculated from input and output counts.
+For Jev, total token usage is calculated from input and output counts.
 
 Microsoft-Decision-1 is text-only. Image requests and `SafetyIdentifier` currently
 throw `NotSupportedException`; the common contract remains available to every provider.

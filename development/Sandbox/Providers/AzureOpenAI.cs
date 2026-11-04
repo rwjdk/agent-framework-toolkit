@@ -29,7 +29,7 @@ public static class AzureOpenAI
         };
 
 
-        AzureOpenAIDecisionFactory decisionFactory = new AzureOpenAIDecisionFactory(connection, "Decision-1");
+        AzureOpenAIDecisionFactory decisionFactory = new AzureOpenAIDecisionFactory(connection, DecisionProtocol.Jev, "Decision-1");
 
         DynamicDecisionRequest dynamicRequest = new()
         {

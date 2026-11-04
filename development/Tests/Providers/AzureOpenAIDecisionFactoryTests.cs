@@ -15,6 +15,39 @@ namespace AgentFrameworkToolkit.Tests.Providers;
 
 public class AzureOpenAIDecisionFactoryTests
 {
+    [Fact]
+    public async Task OpenAIProtocol_UsesAzureTransportAndOpenAIWireFormatAsync()
+    {
+        using RecordingHandler handler = new();
+        handler.Response["answers"] = new JsonArray
+        {
+            new JsonObject { ["type"] = "predicate", ["name"] = "Value", ["probability"] = 0.9 }
+        };
+        handler.Response["usage"]!["total_tokens"] = 6;
+        using HttpClient client = new(handler);
+        AzureOpenAIConnection connection = new("https://example.openai.azure.com/openai/v1/", "test-key")
+        {
+            AdditionalOpenAIClientOptions = options => options.Transport = new HttpClientPipelineTransport(client)
+        };
+        IDecisionFactory factory = new AzureOpenAIDecisionFactory(connection, DecisionProtocol.OpenAI, "custom-deployment");
+        RawCallDetails? raw = null;
+        Probability probability = await factory.ProbabilityAsync(new ProbabilityRequest
+        {
+            Input = "The screen is shattered.", Question = "Damaged?", SafetyIdentifier = "test-user",
+            RawHttpCallDetails = details => raw = details
+        }, TestContext.Current.CancellationToken);
+
+        Assert.Equal(0.9, probability.Value);
+        Assert.Equal("https://example.openai.azure.com/openai/v1/decisions", handler.RequestUrl);
+        Assert.Equal(handler.RequestUrl, raw!.RequestUrl);
+        Assert.Equal("Bearer test-key", handler.Authorization);
+        using JsonDocument request = JsonDocument.Parse(handler.RequestBody!);
+        Assert.Equal("custom-deployment", request.RootElement.GetProperty("model").GetString());
+        Assert.Equal("The screen is shattered.", request.RootElement.GetProperty("input").GetString());
+        Assert.Equal("test-user", request.RootElement.GetProperty("safety_identifier").GetString());
+        Assert.Equal(JsonValueKind.Array, request.RootElement.GetProperty("questions").ValueKind);
+        Assert.False(request.RootElement.TryGetProperty("state", out _));
+    }
 
     [Fact]
     public async Task ImageUrlRequests_RejectEveryOperationBeforeSendingAsync()
@@ -183,8 +216,9 @@ public class AzureOpenAIDecisionFactoryTests
         using RecordingHandler handler = new();
         using HttpClient client = new(handler);
         IDecisionFactory factory = CreateFactory(client);
-        Assert.Throws<ArgumentException>(() => new AzureOpenAIDecisionFactory("https://example.services.ai.azure.com", "key", " "));
-        Assert.Throws<ArgumentNullException>(() => new AzureOpenAIDecisionFactory((AzureOpenAIConnection)null!, "model"));
+        Assert.Throws<ArgumentException>(() => new AzureOpenAIDecisionFactory("https://example.services.ai.azure.com", DecisionProtocol.Jev, "key", " "));
+        Assert.Throws<ArgumentNullException>(() => new AzureOpenAIDecisionFactory((AzureOpenAIConnection)null!, DecisionProtocol.Jev, "model"));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new AzureOpenAIDecisionFactory("https://example.openai.azure.com", (DecisionProtocol)99, "key", "model"));
         await Assert.ThrowsAsync<ArgumentNullException>(() => factory.ChooseAsync<Department>((ChoiceRequest)null!, TestContext.Current.CancellationToken));
         await Assert.ThrowsAsync<ArgumentException>(() => factory.ProbabilityAsync(new ProbabilityRequest { Input = " ", Question = "Damaged?" }, TestContext.Current.CancellationToken));
         using CancellationTokenSource cancelled = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
@@ -197,7 +231,7 @@ public class AzureOpenAIDecisionFactoryTests
     public void DependencyInjection_ResolvesTheSameFactory()
     {
         ServiceCollection services = new();
-        services.AddAzureOpenAIDecisionFactory("https://example.services.ai.azure.com", "key", "model");
+        services.AddAzureOpenAIDecisionFactory("https://example.services.ai.azure.com", DecisionProtocol.Jev, "key", "model");
         using ServiceProvider provider = services.BuildServiceProvider();
         Assert.Same(provider.GetRequiredService<AzureOpenAIDecisionFactory>(), provider.GetRequiredService<IDecisionFactory>());
         ServiceCollection openAiServices = new();
@@ -221,7 +255,7 @@ public class AzureOpenAIDecisionFactoryTests
         {
             AdditionalOpenAIClientOptions = options => options.Transport = new HttpClientPipelineTransport(client)
         };
-        IDecisionFactory factory = new AzureOpenAIDecisionFactory(connection, "explicit-model");
+        IDecisionFactory factory = new AzureOpenAIDecisionFactory(connection, DecisionProtocol.Jev, "explicit-model");
         await factory.CreateDecisionAsync<SupportDecision>(new DecisionRequest { Input = "Evidence" }, TestContext.Current.CancellationToken);
         string expectedHost = new Uri(endpoint).Host;
         Assert.Equal($"https://{expectedHost}/providers/microsoft/v1/systemone", handler.RequestUrl);
@@ -285,7 +319,7 @@ public class AzureOpenAIDecisionFactoryTests
         return new(new AzureOpenAIConnection("https://example.services.ai.azure.com", "test-key")
         {
             AdditionalOpenAIClientOptions = options => options.Transport = new HttpClientPipelineTransport(client)
-        }, "explicit-model");
+        }, DecisionProtocol.Jev, "explicit-model");
     }
 
     private static JsonObject ChoiceAnswer()

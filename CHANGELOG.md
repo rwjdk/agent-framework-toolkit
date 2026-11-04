@@ -1,5 +1,10 @@
 # Changelog - Agent Framework Toolkit
 
+## Version 1.27.1 (4th of November 2026)
+- [BREAKING] Azure decision factories now require a `DecisionProtocol` to select Jev (Microsoft Decision-1) or OpenAI Decisions.
+
+---
+
 ## Version 1.27.0 (30th of October 2026)
 - Updated Agent Framework from 1.26.0 to 1.27.0
 - Updated all NuGet packages to the latest

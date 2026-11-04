@@ -11,37 +11,40 @@ namespace AgentFrameworkToolkit.AzureOpenAI;
 [PublicAPI]
 public static class ServiceCollectionExtensions
 {
-    /// <summary>Registers a singleton Microsoft decision factory and the shared decision interface.</summary>
+    /// <summary>Registers a singleton Azure decision factory and the shared decision interface.</summary>
     /// <param name="services">The service collection.</param>
     /// <param name="connection">Authentication, endpoint, and transport configuration.</param>
-    /// <param name="deployment">The deployed Microsoft decision model's name.</param>
+    /// <param name="protocol">The underlying decision protocol.</param>
+    /// <param name="deployment">The deployment name of a model supported by the selected protocol.</param>
     /// <returns>The service collection.</returns>
-    public static IServiceCollection AddAzureOpenAIDecisionFactory(this IServiceCollection services, AzureOpenAIConnection connection, string deployment)
+    public static IServiceCollection AddAzureOpenAIDecisionFactory(this IServiceCollection services, AzureOpenAIConnection connection, DecisionProtocol protocol, string deployment)
     {
-        services.AddSingleton(new AzureOpenAIDecisionFactory(connection, deployment));
+        services.AddSingleton(new AzureOpenAIDecisionFactory(connection, protocol, deployment));
         return services.AddSingleton<IDecisionFactory>(provider => provider.GetRequiredService<AzureOpenAIDecisionFactory>());
     }
 
-    /// <summary>Registers Microsoft decisions with a Foundry resource endpoint and API key.</summary>
+    /// <summary>Registers Azure decisions with an Azure resource endpoint and API key.</summary>
     /// <param name="services">The service collection.</param>
-    /// <param name="endpoint">The Foundry resource endpoint.</param>
+    /// <param name="endpoint">The Azure resource endpoint.</param>
+    /// <param name="protocol">The underlying decision protocol.</param>
     /// <param name="apiKey">The resource API key.</param>
-    /// <param name="deployment">The deployed Microsoft decision model's name.</param>
+    /// <param name="deployment">The deployment name of a model supported by the selected protocol.</param>
     /// <returns>The service collection.</returns>
-    public static IServiceCollection AddAzureOpenAIDecisionFactory(this IServiceCollection services, string endpoint, string apiKey, string deployment)
+    public static IServiceCollection AddAzureOpenAIDecisionFactory(this IServiceCollection services, string endpoint, DecisionProtocol protocol, string apiKey, string deployment)
     {
-        return services.AddAzureOpenAIDecisionFactory(new AzureOpenAIConnection(endpoint, apiKey), deployment);
+        return services.AddAzureOpenAIDecisionFactory(new AzureOpenAIConnection(endpoint, apiKey), protocol, deployment);
     }
 
-    /// <summary>Registers Microsoft decisions with a Foundry resource endpoint and RBAC credentials.</summary>
+    /// <summary>Registers Azure decisions with an Azure resource endpoint and RBAC credentials.</summary>
     /// <param name="services">The service collection.</param>
-    /// <param name="endpoint">The Foundry resource endpoint.</param>
+    /// <param name="endpoint">The Azure resource endpoint.</param>
+    /// <param name="protocol">The underlying decision protocol.</param>
     /// <param name="credentials">Credentials authorized to call the deployment.</param>
-    /// <param name="deployment">The deployed Microsoft decision model's name.</param>
+    /// <param name="deployment">The deployment name of a model supported by the selected protocol.</param>
     /// <returns>The service collection.</returns>
-    public static IServiceCollection AddAzureOpenAIDecisionFactory(this IServiceCollection services, string endpoint, TokenCredential credentials, string deployment)
+    public static IServiceCollection AddAzureOpenAIDecisionFactory(this IServiceCollection services, string endpoint, DecisionProtocol protocol, TokenCredential credentials, string deployment)
     {
-        return services.AddAzureOpenAIDecisionFactory(new AzureOpenAIConnection(endpoint, credentials), deployment);
+        return services.AddAzureOpenAIDecisionFactory(new AzureOpenAIConnection(endpoint, credentials), protocol, deployment);
     }
 
     /// <summary>

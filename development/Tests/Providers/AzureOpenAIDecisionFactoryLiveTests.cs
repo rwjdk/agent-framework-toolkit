@@ -82,7 +82,7 @@ public class AzureOpenAIDecisionFactoryLiveTests
             connection = new(endpoint!, apiKey!);
         }
         connection.NetworkTimeout = TimeSpan.FromSeconds(60);
-        return new(connection, deployment!);
+        return new(connection, DecisionProtocol.Jev, deployment!);
     }
 
     public class SupportDecision
