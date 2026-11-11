@@ -33,7 +33,7 @@ public static class MicrosoftFoundry
 
         MicrosoftFoundryAgent a = connection.GetClient().AsAIAgent(new AgentOptions
         {
-            Model = "gpt-5.6-luna"
+            Model = "gpt-6-luna"
         });
 
         AgentResponse runAsync = await a.RunAsync("Hello");
@@ -60,7 +60,7 @@ public static class MicrosoftFoundry
         MicrosoftFoundryAgent agent2 = factory.DeclarativeAgentFactory.CreateAgent(new DeclarativeAgentCreationOptions
         {
             Name = "MyCoolAgent",
-            Model = "gpt-5.6-luna",
+            Model = "gpt-6-luna",
             Instructions = "Speak like a pirate",
             ReasoningEffort = ResponseReasoningEffortLevel.Low,
             WebSearchTool = true,
@@ -92,7 +92,7 @@ public static class MicrosoftFoundry
         /*
         MicrosoftFoundryAgent agent3 = factory.CreateAgent(new AgentOptions
         {
-            Model = "gpt-5.6-luna",RawHttpCallDetails = details =>
+            Model = "gpt-6-luna",RawHttpCallDetails = details =>
             {
 
                 Console.WriteLine(details.RequestData);
@@ -102,7 +102,7 @@ public static class MicrosoftFoundry
         /*
         AIProjectClient client = connection.GetClient();
 
-        ChatClientAgent agent = client.GetProjectOpenAIClient().GetProjectResponsesClient().AsAIAgent(model: "gpt-5.6-luna");
+        ChatClientAgent agent = client.GetProjectOpenAIClient().GetProjectResponsesClient().AsAIAgent(model: "gpt-6-luna");
         */
 
 

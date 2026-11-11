@@ -27,7 +27,7 @@ public static class OpenAI
         };
 
         OpenAIAgentFactory agentFactory = new OpenAIAgentFactory(openAIConnection);
-        
+
         OpenAIAgent aiAgent = agentFactory.CreateAgent(new AgentOptions
         {
             Model = "gpt-6-luna",
@@ -40,7 +40,7 @@ public static class OpenAI
             Input = "This device is kinda ok",
             Question = "What does the user think of the product",
         });
-        
+
         DataContent image = new(
             await File.ReadAllBytesAsync(@"C:\Users\rasmu\Desktop\animals.png"),
             "image/png");
@@ -95,7 +95,7 @@ public static class OpenAI
         ]);
 
         IList<EmbeddingBatchRunResult> embeddingBatchRunResults = await embeddingBatchRun.GetResultAsync();
-        
+
 
         foreach (EmbeddingBatchRunResult result in embeddingBatchRunResults)
         {
@@ -113,12 +113,12 @@ public static class OpenAI
         });
 
         tools.Add(AIFunctionFactory.Create(PythonRunner.RunPhytonScript, name: "execute_python"));
-    
+
         OpenAIAgent agent = factory.CreateAgent(new AgentOptions
         {
             ClientType = ClientType.ResponsesApi,
             Instructions = agentSkills.GetInstructions(),
-            Model = OpenAIChatModels.Gpt5Nano,
+            Model = OpenAIChatModels.Gpt6Luna,
             Tools = tools,
             RawToolCallDetails = details =>
             {

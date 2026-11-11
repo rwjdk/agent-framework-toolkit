@@ -51,7 +51,7 @@ public class AzureOpenAIConnection
     /// <summary>
     /// The Default ClientType (ChatClient or ResponsesAPI) to use for Agents (ChatClient is default)
     /// </summary>
-    public ClientType DefaultClientType { get; set; } = ClientType.ChatClient;
+    public ClientType DefaultClientType { get; set; } = ClientType.ResponsesApi;
 
     /// <summary>
     /// The Endpoint of your Azure OpenAI Resource
@@ -160,7 +160,7 @@ public class AzureOpenAIConnection
         public static readonly Regex OpenAiPattern = new(
             @"^https://.+?\.openai\.azure\.com(?<suffix>/openai/v1(?:/.*)?)$",
             RegexOptions.CultureInvariant | RegexOptions.Compiled);
-        
+
         public static string RemoveSuffixIfMatches(Regex regex, string input)
         {
             Match match = regex.Match(input);

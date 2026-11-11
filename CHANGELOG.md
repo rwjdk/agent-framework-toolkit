@@ -1,5 +1,11 @@
 # Changelog - Agent Framework Toolkit
 
+## Version 1.28.1 (11th of November 2026)
+- [BREAKING] OpenAI and Azure OpenAI agents and chat batches now default to the Responses API.
+- Hosted Foundry agents now default to gpt-6-luna.
+
+---
+
 ## Version 1.28.0 (6th of November 2026)
 - Updated Agent Framework from 1.27.0 to 1.28.0
 - Updated all NuGet packages to the latest
@@ -172,7 +178,7 @@
 - Removed AgentFrameworkToolkit.GitHub as the [GitHub Models Service is being retired](https://github.blog/changelog/2026-07-01-github-models-is-being-fully-retired-on-july-30-2026)
 - Added known model-names for OpenAI (5.6 Sol, 5.6 Terra, 5.6 Luna)
 - Added known model-names for Google (Gemini 3.5 Flash)
-- Added known model-names for xAI (Grok 4.5), 
+- Added known model-names for xAI (Grok 4.5),
 - Added known model-names for Anthropic (Sonnet 5) and OpenRouter (Various)
 - Updated icon to the new MAF logo
 
@@ -249,7 +255,7 @@
 ---
 
 ## Version 1.4.0 (5th of May 2026)
-- Updated Agent Framework from 1.3.0 to 1.4.0 
+- Updated Agent Framework from 1.3.0 to 1.4.0
 - Fix that AgentSkills License/Compatibility/AllowedTools information was not correctly included ([PR#64](https://github.com/rwjdk/agent-framework-toolkit/pull/64) - Thank you to [UrienZhang](https://github.com/UrienZhang))
 - Made Tools, Tools.ModelContextProtocol and AgentSkills dependent on Microsoft.Agents.AI instead of Microsoft.Extensions.AI.Abstractions as latter package tend to be ahead of AF and cause incompatible states.
 - Updated all NuGet packages to the latest
@@ -257,13 +263,13 @@
 ---
 
 ## Version 1.3.0 (24th of April 2026)
-- Updated Agent Framework from 1.2.0 to 1.3.0 
+- Updated Agent Framework from 1.2.0 to 1.3.0
 - Updated all NuGet packages to the latest
 
 ---
 
 ## Version 1.2.0 (22nd of April 2026)
-- Updated Agent Framework from 1.1.0 to 1.2.0 
+- Updated Agent Framework from 1.1.0 to 1.2.0
 - Updated all NuGet packages to the latest
 
 ---
@@ -385,7 +391,7 @@
 ---
 
 ## Version 1.0.0-preview.260127.1
-- [BREAKING] Upgraded and fixed breaking changes from Microsoft Agent Framework v.1.0.0-preview.260127.1 
+- [BREAKING] Upgraded and fixed breaking changes from Microsoft Agent Framework v.1.0.0-preview.260127.1
   - `ChatHistoryProviderFactory` is now called `ChatHistoryProviderFactory`
 
 ---
@@ -483,7 +489,7 @@
 - Add [CONTRIBUTING.md](https://github.com/rwjdk/agent-framework-toolkit/blob/main/CONTRIBUTING.md) (Again thanks to [gurolg](https://github.com/gurolg))
 - Bumped `Microsoft.Agents.AI` version to latest (1.0.0-preview.251219.1) to be compatible with [latest breaking changes](https://github.com/microsoft/agent-framework/releases/tag/dotnet-1.0.0-preview.251219.1)
   - Removed Agent Display name as AF does not have it anymore
-  - Remove Agent ID as an override, as it is not overridable anymore 
+  - Remove Agent ID as an override, as it is not overridable anymore
   - Resolved new OpenAI Nuget Package renames in ResponsesAPI
 - Renamed `ToolCallsHandler.ToolCallingMiddleware` to `ToolCallingMiddlewareAsync`
 - Added `DefaultClientType` to OpenAI/AzureOpenAI-based providers so you can define if `ChatClient` or `ResponsesAPI` is the default `ClientType` for Agents that do not define it themself
@@ -512,7 +518,7 @@
 ## Version 1.0.0-preview.251201.1
 - AzureOpenAI: Added RBAC Support (TokenCredentials)
 - Enabled "Treat Warnings as Errors"
-- Added .editorconfig 
+- Added .editorconfig
 - Removed all todos in the code.
 
 ---

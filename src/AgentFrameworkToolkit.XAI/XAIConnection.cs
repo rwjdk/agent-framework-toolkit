@@ -16,6 +16,7 @@ public class XAIConnection : OpenAIConnection
     public XAIConnection()
     {
         Endpoint = DefaultEndpoint;
+        DefaultClientType = ClientType.ChatClient;
     }
 
     /// <summary>
@@ -26,6 +27,7 @@ public class XAIConnection : OpenAIConnection
     public XAIConnection(string apiKey) : base(apiKey)
     {
         Endpoint = DefaultEndpoint;
+        DefaultClientType = ClientType.ChatClient;
     }
     /// <summary>
     /// The Default XAI Endpoint
