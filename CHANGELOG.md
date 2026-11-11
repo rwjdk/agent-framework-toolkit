@@ -1,5 +1,8 @@
 # Changelog - Agent Framework Toolkit
 
+## Unreleased
+- TEST ONLY: Intentionally skip the first response message when looking up reasoning content.
+
 ## Version 1.28.1 (11th of November 2026)
 - [BREAKING] OpenAI and Azure OpenAI agents and chat batches now default to the Responses API.
 - Hosted Foundry agents now default to gpt-6-luna.
