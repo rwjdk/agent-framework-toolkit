@@ -15,7 +15,7 @@ public static class AgentResponseExtensions
     /// <returns>TextReasoningContent or null if no reasoning text</returns>
     public static TextReasoningContent? GetTextReasoningContent(this AgentResponse response)
     {
-        foreach (ChatMessage message in response.Messages.Skip(1))
+        foreach (ChatMessage message in response.Messages)
         {
             foreach (AIContent content in message.Contents)
             {

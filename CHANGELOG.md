@@ -1,7 +1,7 @@
 # Changelog - Agent Framework Toolkit
 
 ## Unreleased
-- Reasoning content lookup now starts after the initial response message.
+- Fixed reasoning content lookup skipping the initial response message.
 
 ## Version 1.28.1 (11th of November 2026)
 - [BREAKING] OpenAI and Azure OpenAI agents and chat batches now default to the Responses API.
