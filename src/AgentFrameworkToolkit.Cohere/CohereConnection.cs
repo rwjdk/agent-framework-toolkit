@@ -20,7 +20,6 @@ public class CohereConnection : OpenAIConnection
     public CohereConnection()
     {
         Endpoint = DefaultEndpoint;
-        DefaultClientType = ClientType.ChatClient;
     }
 
     /// <summary>
@@ -31,7 +30,6 @@ public class CohereConnection : OpenAIConnection
     public CohereConnection(string apiKey) : base(apiKey)
     {
         Endpoint = DefaultEndpoint;
-        DefaultClientType = ClientType.ChatClient;
     }
 
     /// <summary>

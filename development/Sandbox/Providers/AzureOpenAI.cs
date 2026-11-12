@@ -86,7 +86,7 @@ public static class AzureOpenAI
 
         AIAgent a = connection.GetClient().AsAIAgent(new AgentOptions
         {
-           Model = "gpt-6-luna",
+           Model = "gpt-5.6-luna",
         });
 
         AgentResponse agentResponse = await a.RunAsync("Hello");
@@ -96,7 +96,7 @@ public static class AzureOpenAI
 
         AzureOpenAIAgent agent = factory.CreateAgent(new AgentOptions
         {
-            Model = "gpt-6-luna",
+            Model = "gpt-5.6-luna",
             ReasoningEffort = OpenAIReasoningEffort.Low,
             ClientType = ClientType.ResponsesApi,
             

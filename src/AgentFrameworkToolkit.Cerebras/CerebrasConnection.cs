@@ -16,7 +16,6 @@ public class CerebrasConnection : OpenAIConnection
     public CerebrasConnection()
     {
         Endpoint = DefaultEndpoint;
-        DefaultClientType = ClientType.ChatClient;
     }
 
     /// <summary>
@@ -27,7 +26,6 @@ public class CerebrasConnection : OpenAIConnection
     public CerebrasConnection(string apiKey) : base(apiKey)
     {
         Endpoint = DefaultEndpoint;
-        DefaultClientType = ClientType.ChatClient;
     }
 
     /// <summary>

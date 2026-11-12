@@ -22,10 +22,10 @@ public static class OpenRouter
         {
             ApiKey = secrets.OpenRouterApiKey
         });
-
+        
         OpenRouterAgent agent = factory.CreateAgent(new AgentOptions
         {
-            Model = OpenRouterChatModels.OpenAI.Gpt6Luna,
+            Model = OpenRouterChatModels.OpenAI.Gpt41Nano,
         });
 
         AgentResponse response = await agent.RunAsync("What is the weather like in Paris?");

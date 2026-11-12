@@ -19,9 +19,9 @@ public class ChatBatchOptions
     public bool WaitUntilCompleted { get; set; }
 
     /// <summary>
-    /// Type of batch. Defaults to the Responses API.
+    /// Type ofg batch.
     /// </summary>
-    public ChatBatchClientType ClientType { get; set; } = ChatBatchClientType.ResponsesApi;
+    public ChatBatchClientType ClientType { get; set; } = ChatBatchClientType.ChatClient;
 
     /// <summary>
     /// Optional instructions that are prepended to every batch line as a system message.

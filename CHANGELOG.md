@@ -1,5 +1,10 @@
 # Changelog - Agent Framework Toolkit
 
+## Version 1.28.2 (12th of November 2026)
+- Reverted the unintended 1.28.1 changes to restore the exact code from 1.28.0.
+
+---
+
 ## Version 1.28.1 (11th of November 2026)
 - [BREAKING] OpenAI and Azure OpenAI agents and chat batches now default to the Responses API.
 - Hosted Foundry agents now default to gpt-6-luna.

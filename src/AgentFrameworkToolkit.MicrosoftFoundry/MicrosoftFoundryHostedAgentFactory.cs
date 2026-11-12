@@ -52,7 +52,7 @@ public class MicrosoftFoundryHostedAgentFactory
 
         return new MicrosoftFoundryAgent(agent);
     }
-
+    
     /// <summary>
     /// Create a Hosted Agent from local source code (or update to a new version if agentName exists)
     /// </summary>
@@ -68,7 +68,7 @@ public class MicrosoftFoundryHostedAgentFactory
                 dependencyResolution: CodeDependencyResolution.RemoteBuild),
         };
         definition.Versions.Add(new ProtocolVersionRecord(ProjectsAgentProtocol.Responses, "1.0.0"));
-        definition.EnvironmentVariables["AZURE_AI_MODEL_DEPLOYMENT_NAME"] = "gpt-6-luna";
+        definition.EnvironmentVariables["AZURE_AI_MODEL_DEPLOYMENT_NAME"] = "gpt-5.6-luna";
 
         AgentVersionFromCodeMetadata metadata = new(definition);
 

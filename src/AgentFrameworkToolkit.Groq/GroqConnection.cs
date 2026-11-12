@@ -16,7 +16,6 @@ public class GroqConnection : OpenAIConnection
     public GroqConnection()
     {
         Endpoint = DefaultEndpoint;
-        DefaultClientType = ClientType.ChatClient;
     }
 
     /// <summary>
@@ -27,7 +26,6 @@ public class GroqConnection : OpenAIConnection
     public GroqConnection(string apiKey) : base(apiKey)
     {
         Endpoint = DefaultEndpoint;
-        DefaultClientType = ClientType.ChatClient;
     }
 
     /// <summary>

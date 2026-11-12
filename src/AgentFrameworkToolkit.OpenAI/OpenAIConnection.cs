@@ -33,7 +33,7 @@ public class OpenAIConnection
     /// <summary>
     /// The Default ClientType (ChatClient or ResponsesAPI) to use for Agents
     /// </summary>
-    public ClientType DefaultClientType { get; set; } = ClientType.ResponsesApi;
+    public ClientType DefaultClientType { get; set; } = ClientType.ChatClient;
 
     /// <summary>
     /// The API Key to be used

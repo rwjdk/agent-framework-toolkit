@@ -16,7 +16,6 @@ public class OpenRouterConnection : OpenAIConnection
     public OpenRouterConnection()
     {
         Endpoint = DefaultEndpoint;
-        DefaultClientType = ClientType.ChatClient;
     }
 
     /// <summary>
@@ -27,7 +26,6 @@ public class OpenRouterConnection : OpenAIConnection
     public OpenRouterConnection(string apiKey) : base(apiKey)
     {
         Endpoint = DefaultEndpoint;
-        DefaultClientType = ClientType.ChatClient;
     }
 
     /// <summary>
