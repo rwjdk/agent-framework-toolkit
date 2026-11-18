@@ -7,9 +7,10 @@ namespace AgentFrameworkToolkit.AzureOpenAI;
 public enum DecisionProtocol
 {
     /// <summary>
-    /// The Jev protocol hosted as Microsoft Decision-1 at /providers/microsoft/v1/systemone.
+    /// The Jev protocol hosted as Microsoft Decision at /providers/microsoft/v1/systemone.
     /// Supports text evidence with typed or runtime-defined choice, probability, and score questions.
-    /// Image inputs and SafetyIdentifier are not supported.
+    /// Microsoft-Decision-1.1 supports up to eight inline images using automatic image detail.
+    /// Image URLs and SafetyIdentifier are not supported.
     /// </summary>
     Jev,
 

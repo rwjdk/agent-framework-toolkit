@@ -272,7 +272,8 @@ invalid answers fail the entire operation, just like typed decisions.
 For images, use `DynamicDecisionImageRequest` with required `Images`, required
 `Questions`, optional `Input`, and optional `ImageDetail`. Existing inline image
 limits and request configuration apply. Dynamic text requests also work with
-Azure OpenAI and Jev; those providers continue to reject image requests.
+Azure OpenAI and Jev. Azure image support depends on the selected decision protocol
+and model deployment. Jev supports experimental inline PNG and JPEG input.
 
 ### Attribute-defined questions
 

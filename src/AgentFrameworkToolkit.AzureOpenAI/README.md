@@ -230,5 +230,6 @@ the last registration supplies `IDecisionFactory`. All operations accept cancell
 tokens. Set `RawHttpCallDetails` on a request to inspect request and response bodies.
 For Jev, total token usage is calculated from input and output counts.
 
-Microsoft-Decision-1 is text-only. Image requests and `SafetyIdentifier` currently
-throw `NotSupportedException`; the common contract remains available to every provider.
+Microsoft-Decision-1 is text-only. Microsoft-Decision-1.1 supports up to eight inline
+images per request with automatic image detail. Image URLs and `SafetyIdentifier`
+are unsupported through the Jev protocol.

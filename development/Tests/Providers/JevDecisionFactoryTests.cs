@@ -145,16 +145,16 @@ public class JevDecisionFactoryTests
     }
 
     [Fact]
-    public async Task ImageOverloadsAndSafetyIdentifier_FailWithoutSendingAsync()
+    public async Task EmptyImageRequestsAndSafetyIdentifier_FailWithoutSendingAsync()
     {
         using RecordingHandler handler = new();
         using HttpClient client = new(handler);
         IDecisionFactory factory = CreateFactory(client);
-        await Assert.ThrowsAsync<NotSupportedException>(() => factory.CreateDecisionAsync<SupportDecision>(new DecisionImageRequest { Images = [] }, TestContext.Current.CancellationToken));
-        await Assert.ThrowsAsync<NotSupportedException>(() => factory.ChooseAsync<Department>(new ChoiceImageRequest { Images = [], Question = "Department?" }, TestContext.Current.CancellationToken));
-        await Assert.ThrowsAsync<NotSupportedException>(() => factory.ProbabilityAsync(new ProbabilityImageRequest { Images = [], Question = "Damaged?" }, TestContext.Current.CancellationToken));
-        await Assert.ThrowsAsync<NotSupportedException>(() => factory.IsTrueAsync(new ProbabilityImageRequest { Images = [], Question = "Damaged?" }, TestContext.Current.CancellationToken));
-        await Assert.ThrowsAsync<NotSupportedException>(() => factory.ScoreAsync<Level>(new ScoreImageRequest { Images = [], Question = "Severity?" }, TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<ArgumentException>(() => factory.CreateDecisionAsync<SupportDecision>(new DecisionImageRequest { Images = [] }, TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<ArgumentException>(() => factory.ChooseAsync<Department>(new ChoiceImageRequest { Images = [], Question = "Department?" }, TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<ArgumentException>(() => factory.ProbabilityAsync(new ProbabilityImageRequest { Images = [], Question = "Damaged?" }, TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<ArgumentException>(() => factory.IsTrueAsync(new ProbabilityImageRequest { Images = [], Question = "Damaged?" }, TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<ArgumentException>(() => factory.ScoreAsync<Level>(new ScoreImageRequest { Images = [], Question = "Severity?" }, TestContext.Current.CancellationToken));
         await Assert.ThrowsAsync<NotSupportedException>(() => factory.ProbabilityAsync(new ProbabilityRequest
         {
             Input = "Evidence", Question = "Damaged?", SafetyIdentifier = "user"

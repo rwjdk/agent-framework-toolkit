@@ -5,6 +5,7 @@ using AgentFrameworkToolkit.Decisions;
 using AgentFrameworkToolkit.OpenAI;
 using Azure.Core;
 using JetBrains.Annotations;
+using Microsoft.Extensions.AI;
 using OpenAI;
 using static AgentFrameworkToolkit.Decisions.DecisionQuestions;
 
@@ -89,17 +90,16 @@ public sealed class AzureOpenAIDecisionFactory : DecisionFactory
         {
             return await _openAIDecisions.EvaluateAsync(request, definitions, cancellationToken).ConfigureAwait(false);
         }
-        if (request is DecisionImageUrlRequest or ChoiceImageUrlRequest or ProbabilityImageUrlRequest or ScoreImageUrlRequest or DynamicDecisionImageUrlRequest or DecisionImageRequest or ChoiceImageRequest or ProbabilityImageRequest or ScoreImageRequest or DynamicDecisionImageRequest)
+        if (request is DecisionImageUrlRequest or ChoiceImageUrlRequest or ProbabilityImageUrlRequest or ScoreImageUrlRequest or DynamicDecisionImageUrlRequest)
         {
-            throw new NotSupportedException("Microsoft decision models do not currently support images.");
+            throw new NotSupportedException("The Microsoft decision API requires inline image data.");
         }
-        ArgumentException.ThrowIfNullOrWhiteSpace(request.EvidenceInput);
         if (request.SafetyIdentifier is not null)
         {
             throw new NotSupportedException("The Microsoft decision API does not support SafetyIdentifier.");
         }
         Dictionary<string, object> questions = KeyedDecisionProtocol.CreateQuestions(definitions);
-        BinaryData requestData = BinaryData.FromObjectAsJson(new { model = _deployment, state = request.EvidenceInput, questions });
+        BinaryData requestData = CreateRequestData(request, questions);
         using PipelineMessage message = _client.Pipeline.CreateMessage();
         message.Apply(new RequestOptions { CancellationToken = cancellationToken });
         message.Request.Method = "POST";
@@ -121,5 +121,47 @@ public sealed class AzureOpenAIDecisionFactory : DecisionFactory
         }
         using JsonDocument document = JsonDocument.Parse(response.Content);
         return KeyedDecisionProtocol.ReadEvaluation(document.RootElement, definitions);
+    }
+
+    private BinaryData CreateRequestData(DecisionRequestBase request, Dictionary<string, object> questions)
+    {
+        if (request is not (DecisionImageRequest or ChoiceImageRequest or ProbabilityImageRequest or ScoreImageRequest or DynamicDecisionImageRequest))
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(request.EvidenceInput);
+            return BinaryData.FromObjectAsJson(new { model = _deployment, state = request.EvidenceInput, questions });
+        }
+
+        IList<DataContent>? images = request.EvidenceImages;
+        ArgumentNullException.ThrowIfNull(images);
+        if (images.Count is < 1 or > 8)
+        {
+            throw new ArgumentException("Provide between 1 and 8 images.", nameof(request));
+        }
+        if (request.EvidenceImageDetail != ImageDetail.Auto)
+        {
+            throw new NotSupportedException("The Microsoft decision API does not support setting image detail.");
+        }
+
+        Dictionary<string, object> assets = new();
+        List<string> stateParts = [];
+        if (!string.IsNullOrWhiteSpace(request.EvidenceInput))
+        {
+            stateParts.Add(request.EvidenceInput);
+        }
+        for (int index = 0; index < images.Count; index++)
+        {
+            DataContent image = images[index];
+            ArgumentNullException.ThrowIfNull(image);
+            if (!image.HasTopLevelMediaType("image") || image.Data.IsEmpty)
+            {
+                throw new ArgumentException("Images must contain nonempty inline data and an image MIME type.", nameof(request));
+            }
+            string format = image.MediaType.Split(';', 2)[0]["image/".Length..].Trim().ToLowerInvariant();
+            string name = FormattableString.Invariant($"toolkit-image-{index}.{format}");
+            assets.Add(name, new { type = "image", format, data_base64 = Convert.ToBase64String(image.Data.Span) });
+            stateParts.Add($"image:{name}");
+        }
+
+        return BinaryData.FromObjectAsJson(new { model = _deployment, state = string.Join("\n", stateParts), questions, assets });
     }
 }

@@ -9,6 +9,7 @@ using AgentFrameworkToolkit.Decisions;
 using AgentFrameworkToolkit.AzureOpenAI;
 using AgentFrameworkToolkit.Jev;
 using AgentFrameworkToolkit.OpenAI;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AgentFrameworkToolkit.Tests.Providers;
@@ -72,6 +73,31 @@ public class AzureOpenAIDecisionFactoryTests
         await Assert.ThrowsAsync<NotSupportedException>(() => factory.IsTrueAsync(
             new ProbabilityImageUrlRequest { ImageUrls = urls, Question = "Damaged?" }, cancellationToken));
         Assert.Equal(0, handler.RequestCount);
+    }
+
+    [Fact]
+    public async Task InlineImages_AreEncodedAsOrderedAssetsAsync()
+    {
+        using RecordingHandler handler = new();
+        using HttpClient client = new(handler);
+        IDecisionFactory factory = CreateFactory(client);
+        await factory.CreateDecisionAsync<SupportDecision>(new DecisionImageRequest
+        {
+            Input = "Compare these images.",
+            Images = [new DataContent(new byte[] { 1, 2, 3 }, "image/png"), new DataContent(new byte[] { 4, 5, 6 }, "image/jpeg")]
+        }, TestContext.Current.CancellationToken);
+
+        using JsonDocument request = JsonDocument.Parse(handler.RequestBody!);
+        Assert.Equal("Compare these images.\nimage:toolkit-image-0.png\nimage:toolkit-image-1.jpeg",
+            request.RootElement.GetProperty("state").GetString());
+        JsonElement assets = request.RootElement.GetProperty("assets");
+        JsonElement png = assets.GetProperty("toolkit-image-0.png");
+        Assert.Equal("image", png.GetProperty("type").GetString());
+        Assert.Equal("png", png.GetProperty("format").GetString());
+        Assert.Equal("AQID", png.GetProperty("data_base64").GetString());
+        JsonElement jpeg = assets.GetProperty("toolkit-image-1.jpeg");
+        Assert.Equal("jpeg", jpeg.GetProperty("format").GetString());
+        Assert.Equal("BAUG", jpeg.GetProperty("data_base64").GetString());
     }
 
     [Fact]
@@ -181,16 +207,16 @@ public class AzureOpenAIDecisionFactoryTests
     }
 
     [Fact]
-    public async Task ImageOverloadsAndSafetyIdentifier_FailWithoutSendingAsync()
+    public async Task EmptyImageRequestsAndSafetyIdentifier_FailWithoutSendingAsync()
     {
         using RecordingHandler handler = new();
         using HttpClient client = new(handler);
         IDecisionFactory factory = CreateFactory(client);
-        await Assert.ThrowsAsync<NotSupportedException>(() => factory.CreateDecisionAsync<SupportDecision>(new DecisionImageRequest { Images = [] }, TestContext.Current.CancellationToken));
-        await Assert.ThrowsAsync<NotSupportedException>(() => factory.ChooseAsync<Department>(new ChoiceImageRequest { Images = [], Question = "Department?" }, TestContext.Current.CancellationToken));
-        await Assert.ThrowsAsync<NotSupportedException>(() => factory.ProbabilityAsync(new ProbabilityImageRequest { Images = [], Question = "Damaged?" }, TestContext.Current.CancellationToken));
-        await Assert.ThrowsAsync<NotSupportedException>(() => factory.IsTrueAsync(new ProbabilityImageRequest { Images = [], Question = "Damaged?" }, TestContext.Current.CancellationToken));
-        await Assert.ThrowsAsync<NotSupportedException>(() => factory.ScoreAsync<Level>(new ScoreImageRequest { Images = [], Question = "Severity?" }, TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<ArgumentException>(() => factory.CreateDecisionAsync<SupportDecision>(new DecisionImageRequest { Images = [] }, TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<ArgumentException>(() => factory.ChooseAsync<Department>(new ChoiceImageRequest { Images = [], Question = "Department?" }, TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<ArgumentException>(() => factory.ProbabilityAsync(new ProbabilityImageRequest { Images = [], Question = "Damaged?" }, TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<ArgumentException>(() => factory.IsTrueAsync(new ProbabilityImageRequest { Images = [], Question = "Damaged?" }, TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<ArgumentException>(() => factory.ScoreAsync<Level>(new ScoreImageRequest { Images = [], Question = "Severity?" }, TestContext.Current.CancellationToken));
         await Assert.ThrowsAsync<NotSupportedException>(() => factory.ProbabilityAsync(new ProbabilityRequest
         {
             Input = "Evidence", Question = "Damaged?", SafetyIdentifier = "user"

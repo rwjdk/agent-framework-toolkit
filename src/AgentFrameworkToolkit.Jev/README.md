@@ -97,9 +97,11 @@ the last registration supplies `IDecisionFactory`.
 
 ## Current limitations
 
-All image overloads are present for contract compatibility and throw
-`NotSupportedException` until Jev supports images. `SafetyIdentifier` is
-unsupported by Jev and throws when supplied.
+Jev 1.13 and 1.14 support experimental inline PNG and JPEG input through the
+image request overloads. Both dimensions must be between 280 and 1568 pixels.
+The factory sends TypeSafe's image opt-in header when you use an inline image
+request. Use automatic image detail. Image URLs and `SafetyIdentifier` are
+unsupported by Jev and throw when supplied.
 
 ## Migration from OpenAI-specific contracts
 

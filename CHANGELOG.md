@@ -1,5 +1,9 @@
 # Changelog - Agent Framework Toolkit
 
+## Unreleased
+- Added inline image input for Microsoft-Decision-1.1 deployments on Azure.
+- Added experimental inline PNG and JPEG input for Jev decisions.
+
 ## Version 1.28.2 (12th of November 2026)
 - Reverted the unintended 1.28.1 changes to restore the exact code from 1.28.0.
 
