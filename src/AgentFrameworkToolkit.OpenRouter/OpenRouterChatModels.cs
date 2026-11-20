@@ -82,6 +82,16 @@ public static class OpenRouterChatModels
     public static class Anthropic
     {
         /// <summary>
+        /// Claude Fable 5.2
+        /// </summary>
+        public const string ClaudeFable52 = "anthropic/claude-fable-5.2";
+
+        /// <summary>
+        /// Claude Haiku 5.5
+        /// </summary>
+        public const string ClaudeHaiku55 = "anthropic/claude-haiku-5.5";
+
+        /// <summary>
         /// Claude Opus 5.5
         /// </summary>
         public const string ClaudeOpus55 = "anthropic/claude-opus-5.5";
@@ -189,6 +199,21 @@ public static class OpenRouterChatModels
     [PublicAPI]
     public static class OpenAI
     {
+        /// <summary>
+        /// GPT-6.2 Astra (Reasoning)
+        /// </summary>
+        public const string Gpt62Astra = "openai/gpt-6.2-astra";
+
+        /// <summary>
+        /// GPT-6.2 Sol (Reasoning)
+        /// </summary>
+        public const string Gpt62Sol = "openai/gpt-6.2-sol";
+
+        /// <summary>
+        /// GPT-6.1 Terra (Reasoning)
+        /// </summary>
+        public const string Gpt61Terra = "openai/gpt-6.1-terra";
+
         /// <summary>
         /// GPT-6.1 Sol (Reasoning)
         /// </summary>
@@ -331,6 +356,26 @@ public static class OpenRouterChatModels
     [PublicAPI]
     public static class Google
     {
+        /// <summary>
+        /// Gemini 4 Carbon
+        /// </summary>
+        public const string Gemini4Carbon = "google/gemini-4-carbon";
+
+        /// <summary>
+        /// Gemini 4 Neon
+        /// </summary>
+        public const string Gemini4Neon = "google/gemini-4-neon";
+
+        /// <summary>
+        /// Gemini 4 Hydrogen
+        /// </summary>
+        public const string Gemini4Hydrogen = "google/gemini-4-hydrogen";
+
+        /// <summary>
+        /// Gemini 4 Argon
+        /// </summary>
+        public const string Gemini4Argon = "google/gemini-4-argon";
+
         /// <summary>
         /// Gemini 3.8 Flash
         /// </summary>

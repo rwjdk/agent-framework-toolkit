@@ -9,6 +9,16 @@ namespace AgentFrameworkToolkit.Anthropic;
 public static class AnthropicChatModels
 {
     /// <summary>
+    /// Claude Fable 5.2
+    /// </summary>
+    public const string ClaudeFable52 = "claude-fable-5-2";
+
+    /// <summary>
+    /// Claude Haiku 5.5
+    /// </summary>
+    public const string ClaudeHaiku55 = "claude-haiku-5-5";
+
+    /// <summary>
     /// Claude Opus 5.5
     /// </summary>
     public const string ClaudeOpus55 = "claude-opus-5-5";

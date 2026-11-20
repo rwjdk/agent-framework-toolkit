@@ -9,6 +9,26 @@ namespace AgentFrameworkToolkit.Google;
 public static class GoogleChatModels
 {
     /// <summary>
+    /// Gemini 4 Carbon
+    /// </summary>
+    public const string Gemini4Carbon = "gemini-4-carbon";
+
+    /// <summary>
+    /// Gemini 4 Neon
+    /// </summary>
+    public const string Gemini4Neon = "gemini-4-neon";
+
+    /// <summary>
+    /// Gemini 4 Hydrogen
+    /// </summary>
+    public const string Gemini4Hydrogen = "gemini-4-hydrogen";
+
+    /// <summary>
+    /// Gemini 4 Argon
+    /// </summary>
+    public const string Gemini4Argon = "gemini-4-argon";
+
+    /// <summary>
     /// Gemini 3.8 Flash
     /// </summary>
     public const string Gemini38Flash = "gemini-3.8-flash";

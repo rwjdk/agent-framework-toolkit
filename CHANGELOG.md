@@ -1,6 +1,7 @@
 # Changelog - Agent Framework Toolkit
 
 ## Unreleased
+- Added the latest stable model names for Anthropic, Google, OpenAI, and their OpenRouter equivalents.
 - Added inline image input for Microsoft-Decision-1.1 deployments on Azure.
 - Added experimental inline PNG and JPEG input for Jev decisions.
 
