@@ -145,11 +145,27 @@ public abstract class TestsBase
 
     protected async Task McpToolCallAgentTestsAsync(AgentProvider provider)
     {
-        TestLoggerFactory testLogger = new();
-        Agent agent = await GetAgentForScenarioAsync(provider, AgentScenario.McpToolCall, testLogger);
-        AgentResponse response = await agent.RunAsync("Call the 'getting_started' tool to find what URL the nuget is on", cancellationToken: TestContext.Current.CancellationToken);
-        Assert.True(response.Messages.Count(x => x.Role == ChatRole.Tool) > 0);
-        Assert.Contains("www.nuget.org/packages/TrelloDotNet".ToUpperInvariant(), response.Text.ToUpperInvariant());
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        try
+        {
+            await RunAttemptAsync();
+        }
+        catch (Exception exception) when (exception is Xunit.Sdk.XunitException
+            or HttpRequestException { StatusCode: System.Net.HttpStatusCode.ServiceUnavailable })
+        {
+            TestContext.Current.TestOutputHelper?.WriteLine($"Retrying the MCP test after {exception.GetType().Name}.");
+            await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
+            await RunAttemptAsync();
+        }
+
+        async Task RunAttemptAsync()
+        {
+            TestLoggerFactory testLogger = new();
+            Agent agent = await GetAgentForScenarioAsync(provider, AgentScenario.McpToolCall, testLogger);
+            AgentResponse response = await agent.RunAsync("Call the 'getting_started' tool to find what URL the nuget is on", cancellationToken: cancellationToken);
+            Assert.True(response.Messages.Count(x => x.Role == ChatRole.Tool) > 0);
+            Assert.Contains("www.nuget.org/packages/TrelloDotNet".ToUpperInvariant(), response.Text.ToUpperInvariant());
+        }
     }
 
     protected async Task StructuredOutputAgentTestsAsync(AgentProvider provider)
@@ -196,7 +212,7 @@ public abstract class TestsBase
                     ApiKey = secrets.AzureOpenAiKey,
                     DefaultClientType = ClientType.ChatClient
                 });
-                string model = OpenAIChatModels.Gpt5Nano;
+                string model = OpenAIChatModels.Gpt6Luna;
                 return scenario switch
                 {
                     AgentScenario.Simple => factory.CreateAgent(model, TestInstructions, TestName, tools),
@@ -211,7 +227,7 @@ public abstract class TestsBase
                     ApiKey = secrets.AzureOpenAiKey,
                     DefaultClientType = ClientType.ResponsesApi
                 });
-                string model = OpenAIChatModels.Gpt5Nano;
+                string model = OpenAIChatModels.Gpt6Luna;
                 return scenario switch
                 {
                     AgentScenario.Simple => factory.CreateAgent(model, TestInstructions, TestName, tools),
@@ -225,7 +241,7 @@ public abstract class TestsBase
                     ApiKey = secrets.OpenAiApiKey,
                     DefaultClientType = ClientType.ChatClient
                 });
-                string model = OpenAIChatModels.Gpt5Nano;
+                string model = OpenAIChatModels.Gpt6Luna;
                 return scenario switch
                 {
                     AgentScenario.Simple => factory.CreateAgent(model, TestInstructions, TestName, tools),
@@ -237,9 +253,9 @@ public abstract class TestsBase
                 OpenAIAgentFactory factory = new(new OpenAIConnection
                 {
                     ApiKey = secrets.OpenAiApiKey,
-                    DefaultClientType = ClientType.ChatClient
+                    DefaultClientType = ClientType.ResponsesApi
                 });
-                string model = OpenAIChatModels.Gpt5Nano;
+                string model = OpenAIChatModels.Gpt6Luna;
                 return scenario switch
                 {
                     AgentScenario.Simple => factory.CreateAgent(model, TestInstructions, TestName, tools),
@@ -522,6 +538,10 @@ public abstract class TestsBase
 
             switch (model)
             {
+                case OpenAIChatModels.Gpt6Luna when clientType == ClientType.ChatClient:
+                    options.ReasoningEffort = OpenAIReasoningEffort.None;
+                    break;
+                case OpenAIChatModels.Gpt6Luna:
                 case OpenAIChatModels.Gpt5Nano:
                 case OpenRouterChatModels.OpenAI.Gpt5Nano:
                     options.ReasoningEffort = OpenAIReasoningEffort.Low;

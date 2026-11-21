@@ -63,7 +63,7 @@ public sealed class OpenAITests : TestsBase
 
         CancellationToken cancellationToken = TestContext.Current.CancellationToken;
         string text = (await provider.GetRequiredService<OpenAIAgentFactory>()
-            .CreateAgent(OpenAIChatModels.Gpt5Nano)
+            .CreateAgent(OpenAIChatModels.Gpt6Luna)
             .RunAsync("Hello", cancellationToken: cancellationToken)).Text;
         Assert.NotEmpty(text);
     }
@@ -83,7 +83,7 @@ public sealed class OpenAITests : TestsBase
 
         CancellationToken cancellationToken = TestContext.Current.CancellationToken;
         string text = (await provider.GetRequiredService<OpenAIAgentFactory>()
-            .CreateAgent(OpenAIChatModels.Gpt5Nano)
+            .CreateAgent(OpenAIChatModels.Gpt6Luna)
             .RunAsync("Hello", cancellationToken: cancellationToken)).Text;
         Assert.NotEmpty(text);
     }

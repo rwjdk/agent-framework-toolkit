@@ -67,12 +67,12 @@ public sealed class AzureOpenAITests : TestsBase
         });
         AzureOpenAIAgent agent = factory.CreateAgent(new AgentOptions
         {
-            Model = OpenAIChatModels.Gpt5Nano,
+            Model = OpenAIChatModels.Gpt6Luna,
             Tools = [new HostedImageGenerationTool
             {
                 Options = new ImageGenerationOptions
                 {
-                    ModelId = "gpt-image-1",
+                    ModelId = "gpt-image-2",
                     MediaType = "image/png"
                 }
             }]
@@ -99,7 +99,7 @@ public sealed class AzureOpenAITests : TestsBase
 
         CancellationToken cancellationToken = TestContext.Current.CancellationToken;
         string text = (await provider.GetRequiredService<AzureOpenAIAgentFactory>()
-            .CreateAgent(OpenAIChatModels.Gpt5Nano)
+            .CreateAgent(OpenAIChatModels.Gpt6Luna)
             .RunAsync("Hello", cancellationToken: cancellationToken)).Text;
         Assert.NotEmpty(text);
     }
@@ -120,7 +120,7 @@ public sealed class AzureOpenAITests : TestsBase
 
         CancellationToken cancellationToken = TestContext.Current.CancellationToken;
         string text = (await provider.GetRequiredService<AzureOpenAIAgentFactory>()
-            .CreateAgent(OpenAIChatModels.Gpt5Nano)
+            .CreateAgent(OpenAIChatModels.Gpt6Luna)
             .RunAsync("Hello", cancellationToken: cancellationToken)).Text;
         Assert.NotEmpty(text);
     }
